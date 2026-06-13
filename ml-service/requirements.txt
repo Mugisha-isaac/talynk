@@ -1,6 +1,6 @@
 fastapi==0.110.0
 uvicorn==0.28.0
-torch==2.2.1
+torch==2.12.0
 torchvision==0.17.1
 transformers==4.38.2
 fairlearn==0.10.0
