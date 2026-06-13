@@ -1,20 +1,67 @@
 version: '3.8'
 
 services:
-  ml-service:
-    build: .
-    ports:
-      - "8000:8000"
-    volumes:
-      - ./app:/code/app
+  postgres-db:
+    image: postgres:16-alpine
+    container_name: talynk-postgres
+    restart: always
     environment:
-      - REDIS_HOST=redis-cache
-      - REDIS_PORT=6379
-    depends_on:
-      - redis-cache
+      POSTGRES_USER: talynk_admin
+      POSTGRES_PASSWORD: super_secure_password_123
+      POSTGRES_DB: talynk_ml_metadata
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U talynk_admin -d talynk_ml_metadata"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - talynk-network
 
   redis-cache:
     image: redis:7-alpine
+    container_name: talynk-redis
+    restart: always
     ports:
       - "6379:6379"
-    command: redis-server --appendonly yes
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+    networks:
+      - talynk-network
+
+  ml-service:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: talynk-ml-service
+    restart: always
+    ports:
+      - "8000:8000"
+    environment:
+      - JWT_SECRET_KEY=your-shared-nextauth-jwt-token-secret-key-12345
+      - DATABASE_URL=postgresql://talynk_admin:super_secure_password_123@postgres-db:5432/talynk_ml_metadata
+      - REDIS_URL=redis://redis-cache:6379/0
+    depends_on:
+      postgres-db:
+        condition: service_healthy
+      redis-cache:
+        condition: service_healthy
+    networks:
+      - talynk-network
+
+volumes:
+  postgres_data:
+  redis_data:
+
+networks:
+  talynk-network:
+    driver: bridge

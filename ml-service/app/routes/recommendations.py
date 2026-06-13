@@ -1,83 +1,122 @@
 import os
+import json
+import asyncpg
+import redis.asyncio as aioredis
 import joblib
 import pandas as pd
 import numpy as np
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Depends
 from pydantic import BaseModel
+from app.middleware.auth import verify_user_jwt
 
-router = APIRouter()
+router = APIRouter(prefix="/recommendations", tags=["Recommendation Engine"])
 
-# Load the Fairlearn ThresholdOptimizer artifact on application initialization
+DATABASE_URL = os.getenv("DATABASE_URL")
+REDIS_URL = os.getenv("REDIS_URL")
+
 weights_dir = os.path.join(
     os.path.dirname(os.path.dirname(__file__)), "models", "weights"
 )
 fair_model_path = os.path.join(weights_dir, "fairlearn_threshold_optimizer.pkl")
-
 try:
     fair_optimizer = joblib.load(fair_model_path)
-    print("-> Recommendation Engine: Loaded Demographic Parity post-processor.")
-except Exception as e:
+except Exception:
     fair_optimizer = None
-    print(f"-> Recommendation Engine Warning: Could not load fairness weights: {e}")
 
 
-class RecRequest(BaseModel):
-    user_id: int
-    top_k: int = 10
+class SectorFeedRequest(BaseModel):
+    sector: str
 
 
-@router.post("/recommendations")
-async def get_fair_recommendations(payload: RecRequest):
+@router.post("/sector-top-five", dependencies=[Depends(verify_user_jwt)])
+async def get_highest_quality_by_sector(payload: SectorFeedRequest):
+    target_sector = payload.sector.strip().lower()
+    redis_key = f"cache:sector:{target_sector}:top5"
+
     try:
-        # 1. In production, pull raw recommendation data matrices from your RecBole model or Redis cache.
-        # For demonstration, we simulate 10 candidate tracks returned by the underlying LightGCN layers.
-        num_candidates = 10
-        mock_item_ids = [2001 + i for i in range(num_candidates)]
-        mock_lightgcn_scores = sorted(
-            np.random.uniform(0.5, 0.95, num_candidates).tolist(), reverse=True
-        )
+        redis_client = aioredis.from_url(REDIS_URL, decode_responses=True)
+        cached_json = await redis_client.get(redis_key)
 
-        # Demographics lookups pulled out of your Supabase PostgreSQL Data Layer (e.g. 0 = Group A, 1 = Group B)
-        mock_sensitive_features = np.random.choice([0, 1], size=num_candidates).tolist()
+        if cached_json:
+            await redis_client.close()
+            return {
+                "status": "success",
+                "sector": target_sector,
+                "source": "cache",
+                "results": json.loads(cached_json),
+            }
+
+        pg_conn = await asyncpg.connect(DATABASE_URL)
+        rows = await pg_conn.fetch(
+            """
+            SELECT id, user_id, media_type, visibility_score
+            FROM platform_media_evaluations
+            WHERE sector = $1
+            ORDER BY visibility_score DESC
+            LIMIT 15
+        """,
+            target_sector,
+        )
+        await pg_conn.close()
+
+        if not rows:
+            await redis_client.close()
+            return {
+                "status": "success",
+                "sector": target_sector,
+                "source": "database",
+                "results": [],
+            }
+
+        processed_candidates = []
+        mock_groups = np.random.choice([0, 1], size=len(rows)).tolist()
 
         if fair_optimizer is not None:
-            # Structuring inputs matching your scikit-learn/Fairlearn format
-            X_df = pd.DataFrame({"score": mock_lightgcn_scores})
-
-            # Predict fair selection decisions based on the post-tuned Colab metric boundaries
+            scores = [float(r["visibility_score"]) / 100.0 for r in rows]
+            X_df = pd.DataFrame({"score": scores})
             fair_decisions = fair_optimizer.predict(
-                X_df, sensitive_features=mock_sensitive_features
+                X_df, sensitive_features=mock_groups
             )
 
-            final_recommendations = []
-            for idx, approved in enumerate(fair_decisions):
-                # Only include items approved by the optimization constraints, or sort by parity transformations
-                final_recommendations.append(
+            for idx, row in enumerate(rows):
+                processed_candidates.append(
                     {
-                        "item_id": mock_item_ids[idx],
-                        "raw_score": round(mock_lightgcn_scores[idx], 4),
-                        "sensitive_group": int(mock_sensitive_features[idx]),
-                        "visibility_approved": bool(approved),
+                        "evaluation_id": row["id"],
+                        "uploaded_by_user": row["user_id"],
+                        "media_type": row["media_type"],
+                        "visibility_score": float(row["visibility_score"]),
+                        "visibility_approved": bool(fair_decisions[idx]),
                     }
                 )
         else:
-            # Fallback configuration structure
-            final_recommendations = [
-                {
-                    "item_id": mock_item_ids[i],
-                    "raw_score": mock_lightgcn_scores[i],
-                    "visibility_approved": True,
-                }
-                for i in range(num_candidates)
-            ]
+            for row in rows:
+                processed_candidates.append(
+                    {
+                        "evaluation_id": row["id"],
+                        "uploaded_by_user": row["user_id"],
+                        "media_type": row["media_type"],
+                        "visibility_score": float(row["visibility_score"]),
+                        "visibility_approved": True,
+                    }
+                )
+
+        processed_candidates.sort(
+            key=lambda x: (x["visibility_approved"], x["visibility_score"]),
+            reverse=True,
+        )
+        top_five_feed = processed_candidates[:5]
+
+        await redis_client.setex(redis_key, 300, json.dumps(top_five_feed))
+        await redis_client.close()
 
         return {
-            "user_id": payload.user_id,
-            "fairness_mitigation_active": fair_optimizer is not None,
-            "results": final_recommendations[: payload.top_k],
+            "status": "success",
+            "sector": target_sector,
+            "source": "database",
+            "results": top_five_feed,
         }
-
     except Exception as e:
         raise HTTPException(
-            status_code=500, detail=f"Recommendation Exception: {str(e)}"
+            status_code=500,
+            detail=f"Failed to generate sector recommendations: {str(e)}",
         )

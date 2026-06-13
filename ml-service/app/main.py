@@ -1,30 +1,22 @@
 from fastapi import FastAPI
-from fastapi.middleware.cors import CORSMiddleware
-from app.routes import recommendations, quality, fairness, health
+from app.routes import audio_quality, video_quality, recommendations
 
 app = FastAPI(
-    title="Talynk ML Service",
-    description="FastAPI service for Music Quality, Visual Quality, and Fair Recommendations",
-    version="1.0.0",
+    title="Talynk AI/ML Core Inference Service",
+    description="Production pipeline handling media quality ranking and fair recommendation distribution.",
+    version="2.0.0",
     docs_url="/docs",
-    redoc_url="/redoc",
 )
 
-# Enable CORS for communication with the Next.js backend
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
-
-app.include_router(health.router, tags=["Health"])
-app.include_router(quality.router, prefix="/api/v1", tags=["Quality Evaluation"])
-app.include_router(recommendations.router, prefix="/api/v1", tags=["Recommendations"])
-app.include_router(fairness.router, prefix="/api/v1", tags=["Fairness Re-ranking"])
+app.include_router(audio_quality.router, prefix="/api/v1")
+app.include_router(video_quality.router, prefix="/api/v1")
+app.include_router(recommendations.router, prefix="/api/v1")
 
 
-@app.get("/")
-async def root():
-    return {"message": "Talynk ML Service is running. Access API docs at /docs"}
+@app.get("/health", tags=["System Verification"])
+async def runtime_health_status():
+    return {
+        "status": "healthy",
+        "database_target": "native-postgres-container",
+        "cache_target": "native-redis-container",
+    }
