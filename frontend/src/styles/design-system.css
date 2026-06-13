@@ -1,0 +1,266 @@
+/* Design System - Color Palette, Typography, Spacing */
+
+:root {
+  /* Primary Colors - Premium Blue & Purple */
+  --primary-blue: #3B82F6;
+  --primary-dark: #1E40AF;
+  --primary-light: #60A5FA;
+  --primary-purple: #A78BFA;
+
+  /* Background Colors - Dark Theme */
+  --bg-darkest: #0F1419;
+  --bg-dark: #1A1F2E;
+  --bg-medium: #252D3D;
+  --bg-light: #3A4555;
+
+  /* Text Colors */
+  --text-primary: #FFFFFF;
+  --text-secondary: #94A3B8;
+  --text-tertiary: #64748B;
+  --text-muted: #475569;
+
+  /* Border & Divider Colors */
+  --border-light: #3A4555;
+  --border-medium: #2A3142;
+  --divider: #1A1F2E;
+
+  /* Semantic Colors */
+  --success: #10B981;
+  --warning: #F59E0B;
+  --error: #EF4444;
+  --info: #3B82F6;
+  --accent-rose: #EC4899;
+  --accent-gold: #FBBF24;
+  --accent-cyan: #06B6D4;
+
+  /* Gradients */
+  --gradient-primary: linear-gradient(135deg, #3B82F6 0%, #A78BFA 100%);
+  --gradient-accent: linear-gradient(135deg, #F59E0B 0%, #EC4899 100%);
+  --gradient-forest: linear-gradient(135deg, #10B981 0%, #06B6D4 100%);
+  --gradient-night: linear-gradient(135deg, #0F1419 0%, #1A1F2E 100%);
+
+  /* Glass Effects */
+  --glass-light: rgba(255, 255, 255, 0.05);
+  --glass-medium: rgba(255, 255, 255, 0.08);
+  --glass-strong: rgba(255, 255, 255, 0.15);
+  --backdrop-blur: 12px;
+
+  /* Shadows */
+  --shadow-xs: 0 1px 2px rgba(0, 0, 0, 0.05);
+  --shadow-sm: 0 2px 4px rgba(0, 0, 0, 0.1);
+  --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.15);
+  --shadow-lg: 0 12px 32px rgba(0, 0, 0, 0.2);
+  --shadow-xl: 0 24px 48px rgba(0, 0, 0, 0.25);
+
+  --shadow-blue: 0 10px 25px -5px rgba(59, 130, 246, 0.2);
+  --shadow-purple: 0 10px 25px -5px rgba(167, 139, 250, 0.2);
+  --shadow-rose: 0 10px 25px -5px rgba(236, 72, 153, 0.2);
+
+  /* Spacing Scale (4px base unit) */
+  --sp-1: 4px;
+  --sp-2: 8px;
+  --sp-3: 12px;
+  --sp-4: 16px;
+  --sp-5: 20px;
+  --sp-6: 24px;
+  --sp-7: 28px;
+  --sp-8: 32px;
+  --sp-10: 40px;
+  --sp-12: 48px;
+  --sp-16: 64px;
+
+  /* Timing & Animation */
+  --duration-quick: 150ms;
+  --duration-base: 250ms;
+  --duration-slow: 350ms;
+  --duration-slower: 500ms;
+  --duration-xl: 800ms;
+
+  --ease-linear: linear;
+  --ease-in: cubic-bezier(0.4, 0, 1, 1);
+  --ease-out: cubic-bezier(0, 0, 0.2, 1);
+  --ease-in-out: cubic-bezier(0.4, 0, 0.2, 1);
+  --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+
+  /* Z-Index System */
+  --z-hide: -1;
+  --z-base: 0;
+  --z-overlay: 10;
+  --z-dropdown: 100;
+  --z-sticky: 100;
+  --z-fixed: 200;
+  --z-modal-backdrop: 300;
+  --z-modal: 400;
+  --z-popover: 500;
+  --z-tooltip: 600;
+  --z-notification: 1200;
+
+  /* Border Radius */
+  --radius-xs: 4px;
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
+  --radius-xl: 24px;
+  --radius-2xl: 32px;
+  --radius-full: 9999px;
+
+  /* Typography Scale */
+  --fs-h-xl: 56px;
+  --fs-h-lg: 44px;
+  --fs-h-md: 32px;
+  --fs-h-sm: 24px;
+  --fs-h-xs: 20px;
+
+  --fs-body-lg: 18px;
+  --fs-body-base: 16px;
+  --fs-body-sm: 14px;
+  --fs-body-xs: 12px;
+
+  --lh-tight: 1.2;
+  --lh-normal: 1.5;
+  --lh-relaxed: 1.6;
+  --lh-loose: 1.8;
+
+  --fw-light: 300;
+  --fw-normal: 400;
+  --fw-medium: 500;
+  --fw-semibold: 600;
+  --fw-bold: 700;
+  --fw-extrabold: 800;
+
+  /* Container Widths */
+  --container-sm: 640px;
+  --container-md: 768px;
+  --container-lg: 1024px;
+  --container-xl: 1280px;
+  --container-2xl: 1440px;
+}
+
+/* Global Typography */
+body {
+  font-family: 'Geist', system-ui, -apple-system, sans-serif;
+  font-size: var(--fs-body-base);
+  line-height: var(--lh-normal);
+  color: var(--text-primary);
+  background-color: var(--bg-darkest);
+  font-weight: var(--fw-normal);
+}
+
+h1 {
+  font-size: var(--fs-h-xl);
+  font-weight: var(--fw-bold);
+  line-height: var(--lh-tight);
+  letter-spacing: -0.02em;
+}
+
+h2 {
+  font-size: var(--fs-h-lg);
+  font-weight: var(--fw-bold);
+  line-height: var(--lh-tight);
+  letter-spacing: -0.01em;
+}
+
+h3 {
+  font-size: var(--fs-h-md);
+  font-weight: var(--fw-bold);
+  line-height: var(--lh-tight);
+  letter-spacing: -0.005em;
+}
+
+h4 {
+  font-size: var(--fs-h-sm);
+  font-weight: var(--fw-semibold);
+  line-height: var(--lh-normal);
+}
+
+h5 {
+  font-size: var(--fs-h-xs);
+  font-weight: var(--fw-semibold);
+  line-height: var(--lh-normal);
+}
+
+h6 {
+  font-size: var(--fs-body-lg);
+  font-weight: var(--fw-semibold);
+  line-height: var(--lh-normal);
+}
+
+.body-lg {
+  font-size: var(--fs-body-lg);
+  line-height: var(--lh-relaxed);
+}
+
+.body-sm {
+  font-size: var(--fs-body-sm);
+  line-height: var(--lh-normal);
+}
+
+.body-xs {
+  font-size: var(--fs-body-xs);
+  line-height: var(--lh-normal);
+}
+
+.label {
+  font-size: var(--fs-body-xs);
+  font-weight: var(--fw-semibold);
+  line-height: var(--lh-normal);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.caption {
+  font-size: var(--fs-body-xs);
+  font-weight: var(--fw-normal);
+  line-height: var(--lh-normal);
+  color: var(--text-tertiary);
+}
+
+/* Utility Classes */
+.text-primary {
+  color: var(--text-primary);
+}
+
+.text-secondary {
+  color: var(--text-secondary);
+}
+
+.text-tertiary {
+  color: var(--text-tertiary);
+}
+
+.text-muted {
+  color: var(--text-muted);
+}
+
+.bg-glass {
+  background: var(--glass-medium);
+  backdrop-filter: blur(var(--backdrop-blur));
+}
+
+.glass-effect {
+  background: var(--glass-medium);
+  backdrop-filter: blur(10px);
+  border: 1px solid var(--glass-light);
+}
+
+.glass-effect-lg {
+  background: var(--glass-medium);
+  backdrop-filter: blur(20px);
+  border: 1px solid var(--glass-strong);
+}
+
+.shadow-xs { box-shadow: var(--shadow-xs); }
+.shadow-sm { box-shadow: var(--shadow-sm); }
+.shadow-md { box-shadow: var(--shadow-md); }
+.shadow-lg { box-shadow: var(--shadow-lg); }
+.shadow-xl { box-shadow: var(--shadow-xl); }
+
+.shadow-blue { box-shadow: var(--shadow-blue); }
+.shadow-purple { box-shadow: var(--shadow-purple); }
+.shadow-rose { box-shadow: var(--shadow-rose); }
+
+.gradient-primary { background: var(--gradient-primary); }
+.gradient-accent { background: var(--gradient-accent); }
+.gradient-forest { background: var(--gradient-forest); }
+.gradient-night { background: var(--gradient-night); }
+
