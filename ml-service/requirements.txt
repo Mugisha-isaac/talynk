@@ -2,7 +2,7 @@ fastapi==0.110.0
 uvicorn==0.28.0
 torch==2.2.1
 torchvision==0.17.1
-transformers==4.38.2
+transformers==5.0.0rc3
 fairlearn==0.10.0
 recbole==1.2.0
 redis==5.0.3
