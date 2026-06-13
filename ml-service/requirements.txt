@@ -1,10 +1,24 @@
-fastapi==0.110.0
-uvicorn==0.28.0
-torch==2.2.1
-torchvision==0.17.1
-transformers==4.38.2
-fairlearn==0.10.0
-recbole==1.2.0
-redis==5.0.3
-pydantic==2.6.4
-numpy==1.26.4
+# Core FastAPI Framework
+fastapi>=0.115.6
+uvicorn>=0.34.0
+pydantic>=2.10.4
+
+# Machine Learning & Deep Learning Backbones
+torch>=2.5.1
+torchvision>=0.20.1
+torchaudio>=2.5.1
+transformers>=4.47.1
+accelerate>=1.2.1
+
+# Optimization & Traditional ML
+fairlearn>=0.10.0
+recbole>=1.2.0
+scikit-learn>=1.6.0
+joblib>=1.4.2
+
+# Data Processing & Storage Connectors
+numpy>=1.26.4
+pandas>=2.2.3
+redis>=5.2.1
+requests>=2.32.3
+Pillow>=11.0.0
