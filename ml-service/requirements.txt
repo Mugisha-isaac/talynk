@@ -1,24 +1,22 @@
-# Core FastAPI Framework
+# Production API Engine
 fastapi>=0.115.6
 uvicorn>=0.34.0
 pydantic>=2.10.4
 
-# Machine Learning & Deep Learning Backbones
-torch>=2.5.1
-torchvision>=0.20.1
-torchaudio>=2.5.1
+# Inference Backbones (CPU-optimized defaults)
+torch>=2.5.1 --index-url https://download.pytorch.org/whl/cpu
+torchvision>=0.20.1 --index-url https://download.pytorch.org/whl/cpu
+torchaudio>=2.5.1 --index-url https://download.pytorch.org/whl/cpu
 transformers>=4.47.1
-accelerate>=1.2.1
 
-# Optimization & Traditional ML
+# Lightweight Fairness & Data Containers
 fairlearn>=0.10.0
-recbole>=1.2.0
 scikit-learn>=1.6.0
 joblib>=1.4.2
-
-# Data Processing & Storage Connectors
-numpy>=1.26.4
 pandas>=2.2.3
-redis>=5.2.1
+numpy>=1.26.4
+
+# Data Layer Connectors
 requests>=2.32.3
 Pillow>=11.0.0
+redis>=5.2.1
