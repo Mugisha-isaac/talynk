@@ -2,26 +2,22 @@ import os
 import datetime
 import jwt
 import asyncpg
+import bcrypt
 from fastapi import APIRouter, HTTPException, status
 from pydantic import BaseModel, EmailStr
-from passlib.context import CryptContext
 
 router = APIRouter(prefix="/auth", tags=["User Authentication"])
 
-# Configuration constants
 JWT_SECRET_KEY = os.getenv(
     "JWT_SECRET_KEY", "your-shared-nextauth-jwt-token-secret-key-12345"
 )
 DATABASE_URL = os.getenv("DATABASE_URL")
 
-# Set up password hashing configurations
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
-
 
 class RegisterRequest(BaseModel):
     email: EmailStr
     password: str
-    sector: str  # e.g., 'drawing', 'music', 'gaming'
+    sector: str
 
 
 class LoginRequest(BaseModel):
@@ -31,16 +27,17 @@ class LoginRequest(BaseModel):
 
 @router.post("/register", status_code=status.HTTP_201_CREATED)
 async def register_new_user(payload: RegisterRequest):
-    """
-    Creates a new user record in PostgreSQL and assigns them to a permanent sector.
-    """
-    hashed_password = pwd_context.hash(payload.password)
+    # Native bcrypt requires password strings to be encoded into bytes first
+    password_bytes = payload.password.encode("utf-8")
+    salt = bcrypt.gensalt()
+    # Generate the hash, then decode it back to a standard string for database storage
+    hashed_password = bcrypt.hashpw(password_bytes, salt).decode("utf-8")
+
     target_sector = payload.sector.strip().lower()
 
     try:
         conn = await asyncpg.connect(DATABASE_URL)
 
-        # Check if the email already exists
         user_exists = await conn.fetchrow(
             "SELECT user_id FROM platform_users WHERE email = $1", payload.email
         )
@@ -51,7 +48,6 @@ async def register_new_user(payload: RegisterRequest):
                 detail="Registration failed: An account with this email already exists.",
             )
 
-        # Insert user account metadata
         await conn.execute(
             """
             INSERT INTO platform_users (email, password_hash, sector)
@@ -78,9 +74,6 @@ async def register_new_user(payload: RegisterRequest):
 
 @router.post("/login")
 async def login_user(payload: LoginRequest):
-    """
-    Verifies user credentials and returns a secure JWT bearer access token.
-    """
     try:
         conn = await asyncpg.connect(DATABASE_URL)
         user_record = await conn.fetchrow(
@@ -89,15 +82,22 @@ async def login_user(payload: LoginRequest):
         )
         await conn.close()
 
-        if not user_record or not pwd_context.verify(
-            payload.password, user_record["password_hash"]
-        ):
+        # Check credentials using native bcrypt verification logic
+        if not user_record:
             raise HTTPException(
                 status_code=401,
                 detail="Authentication failed: Invalid email or password credentials.",
             )
 
-        # Structure token token assertions expiration windows (e.g., 24 Hours validity)
+        supplied_password_bytes = payload.password.encode("utf-8")
+        stored_hash_bytes = user_record["password_hash"].encode("utf-8")
+
+        if not bcrypt.checkpw(supplied_password_bytes, stored_hash_bytes):
+            raise HTTPException(
+                status_code=401,
+                detail="Authentication failed: Invalid email or password credentials.",
+            )
+
         token_expiration = datetime.datetime.utcnow() + datetime.timedelta(hours=24)
 
         token_payload = {
