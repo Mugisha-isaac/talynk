@@ -1,0 +1,27 @@
+# Ignore local virtual environments (prevents mounting breaking architectures)
+venv/
+.venv/
+env/
+ENV/
+
+# Ignore internal development tools configurations
+.git
+.gitignore
+.vscode/
+.idea/
+
+# Ignore local python runtime memory allocations
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.pytest_cache/
+
+# Ignore temporary runtime files
+*.mp4
+temp_inference_video.mp4
+.DS_Store
+
+# Prevent mounting native database volumes accidentally back inside images
+postgres_data/
+redis_data/

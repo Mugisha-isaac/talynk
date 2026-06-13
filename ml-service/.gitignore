@@ -1,0 +1,45 @@
+# ==============================================================================
+# Talynk ML Service Python / Git Configuration
+# ==============================================================================
+
+# Core Application Security Configuration Strings
+.env
+.env.local
+.env.*.local
+
+# PyTorch / Scikit-Learn Heavy Weights & Pickled Postprocessors
+app/models/weights/*.pt
+app/models/weights/*.pkl
+app/models/weights/*.bin
+app/models/weights/*.h5
+
+# Temporary Video/Image Buffers (Local forward processing leftovers)
+temp_inference_video.mp4
+*.mp4
+*.avi
+*.mov
+*.png
+*.jpg
+*.jpeg
+
+# Python Runtime Environment Outputs
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Python Virtual Environments
+venv/
+env/
+.venv/
+ENV/
+
+# System and Editor Artifacts
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+*.swp
+*.swo
