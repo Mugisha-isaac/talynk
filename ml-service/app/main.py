@@ -1,14 +1,25 @@
 from fastapi import FastAPI
-from app.routes import audio_quality, video_quality, recommendations
+
+# Import all routers, including the new auth module
+from app.routes import (
+    auth,
+    audio_quality,
+    image_quality,
+    video_quality,
+    recommendations,
+)
 
 app = FastAPI(
     title="Talynk AI/ML Core Inference Service",
-    description="Production pipeline handling media quality ranking and fair recommendation distribution.",
-    version="2.0.0",
+    description="Production pipeline handling native user authorization, quality rankings, and fair recommendations.",
+    version="2.1.0",
     docs_url="/docs",
 )
 
+# Mount Auth first so it sits cleanly at the top of your documentation
+app.include_router(auth.router, prefix="/api/v1")
 app.include_router(audio_quality.router, prefix="/api/v1")
+app.include_router(image_quality.router, prefix="/api/v1")
 app.include_router(video_quality.router, prefix="/api/v1")
 app.include_router(recommendations.router, prefix="/api/v1")
 
