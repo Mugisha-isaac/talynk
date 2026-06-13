@@ -40,7 +40,7 @@ services:
 
   ml-service:
     build:
-      context: .
+      context: ./ml-service
       dockerfile: Dockerfile
     container_name: talynk-ml-service
     restart: always
