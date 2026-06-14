@@ -2,7 +2,8 @@
 
 Talynk is a full-stack platform that connects East African creative professionals with sponsors through sector-based media classification and fairness-aware recommendation. Talents upload their creative work, the system classifies it automatically, and sponsors discover relevant creators through an equitable recommendation engine.
 
-GitHub Repository: https://github.com/your-username/talynk
+GitHub Repository: https://github.com/Mugisha-isaac/talynk
+Demo Video Url: https://www.veed.io/view/fcd6ccf9-7df2-4561-8474-e52cc0f2882b?source=editor&panel=share
 
 ---
 
@@ -40,7 +41,7 @@ talynk/
 ### 1. Clone the repository
 
 ```bash
-git clone https://github.com/your-username/talynk.git
+git clone https://github.com/Mugisha-isaac/talynk
 cd talynk
 ```
 
@@ -147,20 +148,9 @@ The system follows a three-tier architecture:
   - Redis Cache          (quality scores, recommendation outputs, short TTL)
 ```
 
-### Figma Mockups and App Screenshots
+###  Designs and App Screenshots
+ 
 
-Figma design file: https://www.figma.com/your-design-link
-
-Key interface screens:
-
-- `designs/landing-page.png` — public landing page
-- `designs/creator-dashboard.png` — talent upload and portfolio management
-- `designs/sponsor-discovery.png` — sponsor recommendation feed
-- `designs/upload-flow.png` — media upload with classification feedback
-- `designs/analytics.png` — engagement analytics dashboard
-- `designs/transparency-panel.png` — fairness audit and visibility scores
-
-> Screenshots are located in the `designs/` directory of this repository.
 
 ---
 
@@ -194,7 +184,7 @@ sudo apt update && sudo apt install -y docker.io docker-compose-plugin
 **3. Clone the repository and configure environment files**
 
 ```bash
-git clone https://github.com/your-username/talynk.git
+git clone https://github.com/Mugisha-isaac/talynk
 cd talynk
 # Create frontend/.env.local and ml-service/.env as documented above
 ```
