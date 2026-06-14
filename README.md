@@ -11,7 +11,7 @@ Demo Video Url: https://www.veed.io/view/fcd6ccf9-7df2-4561-8474-e52cc0f2882b?so
 
 ## Description
 
-The creative economy in East Africa faces a structural visibility gap — talented creators lack the infrastructure to reach sponsors and opportunity at scale. Talynk addresses this by providing a platform where creators upload portfolio media, an ML pipeline scores and classifies the content by sector, and a fairness-constrained recommendation engine surfaces those creators to sponsors in an equitable way.
+The creative economy in East Africa faces a structural visibility gap. talented creators lack the infrastructure to reach sponsors and opportunity at scale. Talynk addresses this by providing a platform where creators upload portfolio media, an ML pipeline scores and classifies the content by sector, and a fairness-constrained recommendation engine surfaces those creators to sponsors in an equitable way.
 
 The system is built across three layers: a Next.js 14 fullstack frontend, a FastAPI machine-learning inference microservice, and a shared data layer built on Supabase PostgreSQL, Supabase Storage, and Redis.
 
