@@ -121,6 +121,9 @@ uvicorn main:app --host 0.0.0.0 --port 8000 --reload
 
 ## Designs
 
+<img width="2720" height="2880" alt="talynk_system_architecture_updated" src="https://github.com/user-attachments/assets/128bf0ea-d747-445a-8ec1-a71b06aebe00" />
+
+
 ### Architecture Diagram
 
 The system follows a three-tier architecture:
