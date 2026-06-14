@@ -1,6 +1,16 @@
 # Talynk
 
-Talynk is a full-stack platform that connects creative professionals with sponsors through sector-based media classification and fairness-aware recommendation. The system consists of three layers: a Next.js frontend, a FastAPI machine-learning inference service, and a shared data layer built on Supabase PostgreSQL, Redis, and Supabase Storage.
+Talynk is a full-stack platform that connects East African creative professionals with sponsors through sector-based media classification and fairness-aware recommendation. Talents upload their creative work, the system classifies it automatically, and sponsors discover relevant creators through an equitable recommendation engine.
+
+GitHub Repository: https://github.com/your-username/talynk
+
+---
+
+## Description
+
+The creative economy in East Africa faces a structural visibility gap — talented creators lack the infrastructure to reach sponsors and opportunity at scale. Talynk addresses this by providing a platform where creators upload portfolio media, an ML pipeline scores and classifies the content by sector, and a fairness-constrained recommendation engine surfaces those creators to sponsors in an equitable way.
+
+The system is built across three layers: a Next.js 14 fullstack frontend, a FastAPI machine-learning inference microservice, and a shared data layer built on Supabase PostgreSQL, Supabase Storage, and Redis.
 
 ---
 
@@ -12,49 +22,93 @@ talynk/
   ml-service/        FastAPI inference microservice (Python 3.11)
   docker-compose.yml Orchestrates all services
   init.sql           Shared database initialisation
+  README.md          This file
 ```
 
-## Architecture Overview
+---
 
-The frontend serves both the UI and its own API routes (`/api/recommendations`, `/api/upload`, `/api/quality`, `/api/analytics`). It delegates all ML inference to the ml-service over HTTP. Authentication is handled by NextAuth with a Supabase JWT backend.
+## Environment Setup
 
-The ml-service runs in a separate Docker container, exposing a FastAPI router at `/api/v1/`. It integrates fine-tuned models for music quality (MERT-v1-95M), visual quality (NIMA + CLIP), and collaborative filtering recommendations (LightGCN via RecBole). A Fairlearn post-processing layer applies demographic parity constraints before recommendations are returned.
-
-Supabase PostgreSQL stores users, content metadata, interaction logs, and recommendation outputs. Supabase Storage holds audio, video, and image assets. Redis caches quality scores and recommendation outputs with a short TTL.
-
-## Prerequisites
+### Prerequisites
 
 - Docker Desktop (Engine 24+)
-- Node.js 18 or later with Yarn 4.0.0
+- Node.js 18 or later
+- Yarn 4.0.0
 - Python 3.11 or later
 - A Supabase project (PostgreSQL + Auth + Storage)
 
-## Environment Variables
-
-Create `.env.local` in `frontend/` and `.env` in `ml-service/`. The required keys are documented in each service's README and in the respective `.env.example` files.
-
-## Running the Stack
-
-### Development
+### 1. Clone the repository
 
 ```bash
-# Start all services
+git clone https://github.com/your-username/talynk.git
+cd talynk
+```
+
+### 2. Configure environment variables
+
+**Frontend** — create `frontend/.env.local`:
+
+```
+DATABASE_URL=postgresql://...
+NEXT_PUBLIC_SUPABASE_URL=https://your-project.supabase.co
+NEXT_PUBLIC_SUPABASE_ANON_KEY=your_anon_key
+SUPABASE_SERVICE_ROLE_KEY=your_service_role_key
+NEXTAUTH_SECRET=your_nextauth_secret
+NEXTAUTH_URL=http://localhost:3000
+HUGGINGFACE_API_KEY=optional
+```
+
+**ML service** — create `ml-service/.env`:
+
+```
+JWT_SECRET_KEY=your-shared-nextauth-jwt-secret
+DATABASE_URL=postgresql://talynk_admin:password@127.0.0.1:5433/talynk_ml_metadata
+REDIS_URL=redis://127.0.0.1:6379/0
+```
+
+`JWT_SECRET_KEY` must match `NEXTAUTH_SECRET` exactly.
+
+### 3. Supabase storage buckets
+
+Create the following public buckets in your Supabase project:
+
+- `portfolio` — talent portfolio assets
+- `avatars` — user profile images
+- `logos` — sponsor company logos
+
+### 4. Place ML model checkpoints
+
+Copy the following files into `ml-service/models/`:
+
+- `nima_clip_head.pt`
+- `mert_quality_head.pt`
+
+### 5. Run the full stack
+
+```bash
 docker compose up --build
-
-# Frontend only
-cd frontend && yarn dev
-
-# ML service only
-cd ml-service && uvicorn main:app --reload
 ```
 
-### Production
+Or run services individually:
 
 ```bash
-docker compose -f docker-compose.yml up -d
+# Frontend
+cd frontend
+yarn install
+yarn prisma:generate
+yarn prisma:migrate
+yarn prisma:seed
+yarn dev
+
+# ML service
+cd ml-service
+python -m venv venv
+source venv/bin/activate
+pip install -r requirements.txt
+uvicorn main:app --host 0.0.0.0 --port 8000 --reload
 ```
 
-## Service URLs
+### Service URLs
 
 | Service     | URL                       |
 |-------------|---------------------------|
@@ -62,6 +116,117 @@ docker compose -f docker-compose.yml up -d
 | ML service  | http://localhost:8000      |
 | ML API docs | http://localhost:8000/docs |
 
+---
+
+## Designs
+
+### Architecture Diagram
+
+The system follows a three-tier architecture:
+
+```
+[ Next.js Frontend ]
+  - Creator Dashboard
+  - Sponsor Discovery Interface
+  - Upload Page
+  - Analytics Dashboard
+  - Transparency Panel
+        |
+        | HTTP
+        v
+[ FastAPI ML Service ]
+  - MERT-v1-95M    (music quality scoring)
+  - NIMA + CLIP    (visual quality scoring)
+  - LightGCN       (collaborative filtering recommendations)
+  - Fairlearn      (fairness post-processing / demographic parity)
+        |
+        v
+[ Data Layer ]
+  - Supabase PostgreSQL  (users, content, interactions, recommendations)
+  - Supabase Storage     (audio, video, images)
+  - Redis Cache          (quality scores, recommendation outputs, short TTL)
+```
+
+### Figma Mockups and App Screenshots
+
+Figma design file: https://www.figma.com/your-design-link
+
+Key interface screens:
+
+- `designs/landing-page.png` — public landing page
+- `designs/creator-dashboard.png` — talent upload and portfolio management
+- `designs/sponsor-discovery.png` — sponsor recommendation feed
+- `designs/upload-flow.png` — media upload with classification feedback
+- `designs/analytics.png` — engagement analytics dashboard
+- `designs/transparency-panel.png` — fairness audit and visibility scores
+
+> Screenshots are located in the `designs/` directory of this repository.
+
+---
+
+## Deployment Plan
+
+### Target Environment
+
+The application is designed to be deployed as three Docker containers managed by Docker Compose, suitable for a single VPS or a container orchestration platform such as Railway, Render, or a self-hosted Ubuntu server.
+
+### Services
+
+| Service      | Image / Runtime         | Port |
+|--------------|-------------------------|------|
+| frontend     | Node.js 18 / Next.js    | 3000 |
+| ml-service   | Python 3.11 / Uvicorn   | 8000 |
+| postgres     | PostgreSQL 16 Alpine    | 5433 |
+| redis        | Redis 7 Alpine          | 6379 |
+
+### Steps
+
+**1. Provision a server**
+
+A Ubuntu 22.04 VPS with a minimum of 4 GB RAM and 2 vCPUs is recommended given the ML model inference requirements.
+
+**2. Install Docker and Docker Compose**
+
+```bash
+sudo apt update && sudo apt install -y docker.io docker-compose-plugin
+```
+
+**3. Clone the repository and configure environment files**
+
+```bash
+git clone https://github.com/your-username/talynk.git
+cd talynk
+# Create frontend/.env.local and ml-service/.env as documented above
+```
+
+**4. Copy model checkpoints to ml-service/models/**
+
+**5. Build and start all containers**
+
+```bash
+docker compose -f docker-compose.yml up -d --build
+```
+
+**6. Run database migrations**
+
+```bash
+docker compose exec frontend yarn prisma:migrate
+docker compose exec frontend yarn prisma:seed
+```
+
+**7. Configure a reverse proxy (optional)**
+
+Use Nginx or Caddy to terminate HTTPS and proxy:
+- `yourdomain.com` → port 3000 (frontend)
+- `api.yourdomain.com` → port 8000 (ml-service)
+
+### CI/CD
+
+A GitHub Actions workflow can be configured to build and push Docker images on each push to `main`, then SSH into the server to pull and restart containers. A sample workflow file is located at `.github/workflows/deploy.yml`.
+
+---
+
 ## Further Documentation
 
-Each sub-directory contains a dedicated README covering setup, environment configuration, project structure, and API reference. Start with `frontend/README.md` for UI development and `ml-service/README.md` for the inference service.
+- `frontend/README.md` — frontend setup, project structure, API routes, and troubleshooting
+- `ml-service/README.md` — ML service setup, model details, fairness design, and API reference

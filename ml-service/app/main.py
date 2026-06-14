@@ -26,11 +26,11 @@ async def init_db_schema():
 
     if not os.path.exists(init_script_path):
         print(
-            f"⚠️ Warning: init.sql not found at {init_script_path}. Skipping programmatic setup."
+            f"Warning: init.sql not found at {init_script_path}. Skipping programmatic setup."
         )
         return
 
-    print("🚀 Initializing database schema programmatically...")
+    print("Initializing database schema programmatically...")
 
     # Simple retry loop to handle cases where the app starts faster than Postgres is ready
     for attempt in range(5):
@@ -48,22 +48,19 @@ async def init_db_schema():
             break
         except Exception as e:
             print(
-                f"🔄 Connection attempt {attempt + 1}/5 failed. Retrying in 2 seconds... Error: {e}"
+                f"Connection attempt {attempt + 1}/5 failed. Retrying in 2 seconds... Error: {e}"
             )
             await asyncio.sleep(2)
     else:
-        print("❌ Error: Could not connect to the database to initialize schema.")
+        print("Error: Could not connect to the database to initialize schema.")
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # This runs BEFORE the application starts accepting requests
     await init_db_schema()
     yield
-    # Any cleanup code would go here (e.g., closing global connection pools)
 
 
-# Pass the lifespan handler to FastAPI
 app = FastAPI(
     title="Talynk AI/ML Core Inference Service",
     version="2.1.0",
@@ -71,7 +68,6 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
-# --- Your standard routes and OpenAPI specs continue below ---
 app.include_router(auth.router, prefix="/api/v1")
 app.include_router(audio_quality.router, prefix="/api/v1")
 app.include_router(image_quality.router, prefix="/api/v1")
