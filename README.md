@@ -3,6 +3,8 @@
 Talynk is a full-stack platform that connects East African creative professionals with sponsors through sector-based media classification and fairness-aware recommendation. Talents upload their creative work, the system classifies it automatically, and sponsors discover relevant creators through an equitable recommendation engine.
 
 GitHub Repository: https://github.com/Mugisha-isaac/talynk
+
+
 Demo Video Url: https://www.veed.io/view/fcd6ccf9-7df2-4561-8474-e52cc0f2882b?source=editor&panel=share
 
 ---
