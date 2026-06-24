@@ -10,7 +10,7 @@ interface ModernTalentCardProps {
   id: string;
   name: string;
   category: string;
-  image: string;
+  image?: string;
   rating?: number;
   views?: number;
   isLiked?: boolean;

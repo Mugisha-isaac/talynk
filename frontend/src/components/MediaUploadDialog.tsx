@@ -15,6 +15,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Upload, Loader2, CheckCircle } from 'lucide-react';
 import toast from 'react-hot-toast';
+import { SECTOR_CATEGORIES } from '@/types';
 
 interface MediaUploadProps {
   talentId: string;
@@ -29,6 +30,7 @@ export function MediaUploadDialog({ talentId, onSuccess }: MediaUploadProps) {
     title: '',
     description: '',
     type: 'IMAGE',
+    sector: 'music',
   });
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -63,6 +65,7 @@ export function MediaUploadDialog({ talentId, onSuccess }: MediaUploadProps) {
       uploadFormData.append('title', formData.title);
       uploadFormData.append('description', formData.description);
       uploadFormData.append('type', formData.type);
+      uploadFormData.append('sector', formData.sector);
 
       const response = await fetch('/api/media', {
         method: 'POST',
@@ -73,10 +76,16 @@ export function MediaUploadDialog({ talentId, onSuccess }: MediaUploadProps) {
         throw new Error('Upload failed');
       }
 
-      toast.success('Media uploaded and classified successfully!');
+      const result = await response.json();
+      const score = result.visibilityScore ?? result.confidenceScore;
+      const mlLabel = result.mlScored ? 'ML visibility score' : 'Estimated score';
+
+      toast.success(
+        `Uploaded! ${mlLabel}: ${Math.round(score)}/100`
+      );
       setOpen(false);
       setFile(null);
-      setFormData({ title: '', description: '', type: 'IMAGE' });
+      setFormData({ title: '', description: '', type: 'IMAGE', sector: 'music' });
       onSuccess?.();
     } catch (error) {
       toast.error('Failed to upload media');
@@ -154,6 +163,23 @@ export function MediaUploadDialog({ talentId, onSuccess }: MediaUploadProps) {
                 )}
               </label>
             </div>
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="sector">Creative Sector</Label>
+            <select
+              id="sector"
+              name="sector"
+              value={formData.sector}
+              onChange={handleChange}
+              className="w-full px-3 py-2 border border-input rounded-md"
+            >
+              {SECTOR_CATEGORIES.map((sector) => (
+                <option key={sector.id} value={sector.id}>
+                  {sector.icon} {sector.name}
+                </option>
+              ))}
+            </select>
           </div>
 
           <div className="space-y-2">

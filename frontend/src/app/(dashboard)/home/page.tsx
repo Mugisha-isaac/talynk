@@ -1,60 +1,41 @@
-// src/app/(dashboard)/home/page.tsx
-'use client';
+"use client";
 
-import React, { useState } from 'react';
-import { FeedLayout } from '@/components/FeedLayout';
-import { MediaCard } from '@/components/MediaCard';
-import { CreatorCard } from '@/components/CreatorCard';
-import { AIRecommendationCard } from '@/components/AIRecommendationCard';
-import { Button } from '@/components/common/Button';
-import { Sparkles, TrendingUp, Zap } from 'lucide-react';
-
-// Mock data
-const mockRecommendations = [
-  {
-    id: '1',
-    title: 'Emerging Rwandan Musician',
-    subtitle: 'Perfect for your music label',
-    image:
-      'https://images.unsplash.com/photo-1493225457124-a3eb161ffa5f?w=600&h=400&fit=crop',
-    matchScore: 94,
-    reason: 'Their Afrobeats style matches your recent playlist preferences perfectly',
-    factors: [
-      { label: 'Genre Match', value: 98 },
-      { label: 'Engagement Rate', value: 87 },
-      { label: 'Audience Demographics', value: 92 },
-      { label: 'Growth Trajectory', value: 85 },
-    ],
-  },
-];
+import React, { useState } from "react";
+import { FeedLayout } from "@/components/FeedLayout";
+import { MediaCard } from "@/components/MediaCard";
+import { CreatorCard } from "@/components/CreatorCard";
+import { AIRecommendationCard } from "@/components/AIRecommendationCard";
+import { Button } from "@/components/common/Button";
+import { Sparkles, TrendingUp, Zap, Loader2 } from "lucide-react";
+import { useRecommendations } from "@/hooks/useRecommendations";
 
 const mockTrending = [
   {
-    id: '1',
-    title: 'Contemporary Dance Showcase',
+    id: "1",
+    title: "Contemporary Dance Showcase",
     thumbnailUrl:
-      'https://images.unsplash.com/photo-1484318471464-feca0be6d4ee?w=300&h=300&fit=crop',
-    type: 'VIDEO' as const,
-    category: 'Dance',
-    creatorName: 'Amara Movements',
+      "https://images.unsplash.com/photo-1550026593-cb89847b168d?q=80&w=870&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
+    type: "VIDEO" as const,
+    category: "Dance",
+    creatorName: "Amara Movements",
     creatorAvatar:
-      'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=100&h=100&fit=crop',
-    creatorId: 'creator-1',
+      "https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=100&h=100&fit=crop",
+    creatorId: "creator-1",
     likes: 45200,
     comments: 3400,
     shares: 2100,
   },
   {
-    id: '2',
-    title: 'Afrobeats Production Tips',
+    id: "2",
+    title: "Afrobeats Production Tips",
     thumbnailUrl:
-      'https://images.unsplash.com/photo-1493225457124-a3eb161ffa5f?w=300&h=300&fit=crop',
-    type: 'VIDEO' as const,
-    category: 'Music',
-    creatorName: 'DJ Kigali',
+      "https://images.unsplash.com/photo-1493225457124-a3eb161ffa5f?w=300&h=300&fit=crop",
+    type: "VIDEO" as const,
+    category: "Music",
+    creatorName: "DJ Kigali",
     creatorAvatar:
-      'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100&h=100&fit=crop',
-    creatorId: 'creator-2',
+      "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100&h=100&fit=crop",
+    creatorId: "creator-2",
     likes: 32100,
     comments: 2200,
     shares: 1800,
@@ -63,11 +44,11 @@ const mockTrending = [
 
 const mockFeaturedCreators = [
   {
-    id: 'creator-1',
-    name: 'Amara Movements',
+    id: "creator-1",
+    name: "Amara Movements",
     avatar:
-      'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=100&h=100&fit=crop',
-    category: 'Choreography',
+      "https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=100&h=100&fit=crop",
+    category: "Choreography",
     verified: true,
     followers: 125400,
     engagementRate: 8.2,
@@ -75,12 +56,59 @@ const mockFeaturedCreators = [
   },
 ];
 
+const PLACEHOLDER_IMAGES: Record<string, string> = {
+  audio:
+    "https://images.unsplash.com/photo-1527735095040-147bffb4cede?q=80&w=465&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
+  video:
+    "https://images.unsplash.com/photo-1527735095040-147bffb4cede?q=80&w=465&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
+  image:
+    "https://images.unsplash.com/photo-1527735095040-147bffb4cede?q=80&w=465&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
+};
+
 export default function HomePage() {
-  const [currentRecommendationIndex, setCurrentRecommendationIndex] = useState(0);
+  const [currentRecommendationIndex, setCurrentRecommendationIndex] =
+    useState(0);
+  const { recommendations, isLoading, error } = useRecommendations({
+    category: "music",
+    limit: 5,
+  });
+
+  const mlRecommendations = recommendations.map((rec) => ({
+    id: rec.id,
+    title: `Creator ${rec.talentId}`,
+    subtitle: `${(rec as { mediaType?: string }).mediaType || "media"} · ranked by ML visibility score`,
+    image:
+      PLACEHOLDER_IMAGES[
+        (rec as { mediaType?: string }).mediaType || "image"
+      ] || PLACEHOLDER_IMAGES.image,
+    matchScore: rec.matchScore,
+    reason: rec.reason || "Matched by ML visibility scoring engine",
+    factors: [
+      { label: "Visibility Score", value: rec.matchScore },
+      {
+        label: "Quality Match",
+        value: Math.min(100, rec.matchScore + 3),
+      },
+      {
+        label: "Sector Fit",
+        value: Math.max(0, rec.matchScore - 5),
+      },
+      {
+        label: "Fairness Approved",
+        value: (rec as { visibilityApproved?: boolean }).visibilityApproved
+          ? 100
+          : 40,
+      },
+    ],
+  }));
+
+  const activeRecommendations =
+    mlRecommendations.length > 0 ? mlRecommendations : [];
 
   const handleSkipRecommendation = () => {
+    if (activeRecommendations.length === 0) return;
     setCurrentRecommendationIndex(
-      (prev) => (prev + 1) % mockRecommendations.length
+      (prev) => (prev + 1) % activeRecommendations.length,
     );
   };
 
@@ -94,7 +122,11 @@ export default function HomePage() {
 
         <div className="space-y-4">
           {mockTrending.map((item) => (
-            <a key={item.id} href={`/talents/${item.creatorId}`} className="block group">
+            <a
+              key={item.id}
+              href={`/talents/${item.creatorId}`}
+              className="block group"
+            >
               <div className="flex items-center gap-3 p-3 rounded-lg hover:bg-white/5 transition-colors">
                 <div className="w-12 h-12 rounded-lg bg-muted flex-shrink-0 overflow-hidden">
                   <img
@@ -107,7 +139,9 @@ export default function HomePage() {
                   <h4 className="text-sm font-semibold text-white group-hover:text-cyan-400 transition-colors line-clamp-1">
                     {item.title}
                   </h4>
-                  <p className="text-xs text-muted-foreground">{item.creatorName}</p>
+                  <p className="text-xs text-muted-foreground">
+                    {item.creatorName}
+                  </p>
                 </div>
               </div>
             </a>
@@ -123,22 +157,38 @@ export default function HomePage() {
 
   return (
     <FeedLayout sidebarContent={renderSidebar()}>
-      {/* AI Recommendations */}
       <div className="mb-12">
         <div className="flex items-center gap-2 mb-6">
           <Sparkles className="w-6 h-6 text-cyan-400" />
-          <h2 className="text-2xl font-bold text-white">AI-Powered Recommendations</h2>
+          <h2 className="text-2xl font-bold text-white">
+            AI-Powered Recommendations
+          </h2>
         </div>
 
-        <AIRecommendationCard
-          {...mockRecommendations[currentRecommendationIndex]}
-          onAccept={() => {}}
-          onReject={handleSkipRecommendation}
-          isPriority
-        />
+        {isLoading ? (
+          <div className="flex items-center justify-center py-16 text-muted-foreground">
+            <Loader2 className="w-6 h-6 animate-spin mr-2" />
+            Loading ML-scored recommendations...
+          </div>
+        ) : error ? (
+          <div className="rounded-2xl border border-red-500/30 bg-red-500/10 p-6 text-red-300">
+            Could not load recommendations: {error}
+          </div>
+        ) : activeRecommendations.length > 0 ? (
+          <AIRecommendationCard
+            {...activeRecommendations[currentRecommendationIndex]}
+            onAccept={() => {}}
+            onReject={handleSkipRecommendation}
+            isPriority
+          />
+        ) : (
+          <div className="rounded-2xl border border-white/10 bg-card/60 p-6 text-muted-foreground">
+            No scored media yet. Upload portfolio items to generate ML
+            visibility scores.
+          </div>
+        )}
       </div>
 
-      {/* Trending Media */}
       <div className="mb-12">
         <div className="flex items-center gap-2 mb-6">
           <Zap className="w-6 h-6 text-amber-400" />
@@ -156,9 +206,10 @@ export default function HomePage() {
         </Button>
       </div>
 
-      {/* Featured Creators */}
       <div className="mb-12">
-        <h2 className="text-2xl font-bold text-white mb-6">Featured Creators</h2>
+        <h2 className="text-2xl font-bold text-white mb-6">
+          Featured Creators
+        </h2>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           {mockFeaturedCreators.map((creator) => (

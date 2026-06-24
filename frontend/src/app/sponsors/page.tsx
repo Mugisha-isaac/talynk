@@ -18,17 +18,6 @@ const SECTORS = [
   'Sports',
 ];
 
-// Curated Unsplash photo IDs for sponsor/company showcase images
-const sponsorPhotoIds = [
-  '1552664730-d307ca884978', // Corporate
-  '1454165804606', // Business environment
-  '1516534775068', // Collaboration
-  '1507238691413', // Team collaboration
-  '1552664730-9f0cfe5f87a1', // Business
-  '1552664730-d307ca884978', // Office space
-  '1507003211169', // Professional environment
-  '1517694712202', // Creative office
-];
 
 const SAMPLE_SPONSORS = [
   {
@@ -39,6 +28,7 @@ const SAMPLE_SPONSORS = [
     sectors: ['Design', 'Photography', 'Film & Video'],
     talentCount: 12,
     rating: 4.8,
+    imageUrl: 'https://images.unsplash.com/photo-1626785774573-4b799315345d?q=80&w=871&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D',
   },
   {
     id: '2',
@@ -48,6 +38,7 @@ const SAMPLE_SPONSORS = [
     sectors: ['Film & Video', 'Visual Arts'],
     talentCount: 28,
     rating: 4.9,
+    imageUrl: 'https://images.unsplash.com/photo-1522202176988-66273c2fd55f?w=500&h=500&fit=crop',
   },
   {
     id: '3',
@@ -57,6 +48,7 @@ const SAMPLE_SPONSORS = [
     sectors: ['Music', 'Performance & Theater'],
     talentCount: 45,
     rating: 4.7,
+    imageUrl: 'https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=500&h=500&fit=crop',
   },
   {
     id: '4',
@@ -66,6 +58,7 @@ const SAMPLE_SPONSORS = [
     sectors: ['Fashion', 'Photography', 'Design'],
     talentCount: 18,
     rating: 4.6,
+    imageUrl: 'https://images.unsplash.com/photo-1712149463355-0ea04d43187f?q=80&w=464&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D',
   },
   {
     id: '5',
@@ -75,6 +68,7 @@ const SAMPLE_SPONSORS = [
     sectors: ['Design', 'Visual Arts'],
     talentCount: 22,
     rating: 4.8,
+    imageUrl: 'https://plus.unsplash.com/premium_photo-1661292114835-c391002466c7?q=80&w=870&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D',
   },
   {
     id: '6',
@@ -84,6 +78,7 @@ const SAMPLE_SPONSORS = [
     sectors: ['Sports', 'Film & Video'],
     talentCount: 15,
     rating: 4.5,
+    imageUrl: 'https://plus.unsplash.com/premium_vector-1721089734271-cd1889356df1?q=80&w=580&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D',
   },
   {
     id: '7',
@@ -93,6 +88,7 @@ const SAMPLE_SPONSORS = [
     sectors: ['Music', 'Film & Video'],
     talentCount: 35,
     rating: 4.7,
+    imageUrl: 'https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=500&h=500&fit=crop',
   },
   {
     id: '8',
@@ -102,6 +98,7 @@ const SAMPLE_SPONSORS = [
     sectors: ['Visual Arts', 'Photography'],
     talentCount: 8,
     rating: 4.9,
+    imageUrl: 'https://images.unsplash.com/photo-1522202176988-66273c2fd55f?w=500&h=500&fit=crop',
   },
 ];
 
@@ -208,13 +205,13 @@ export default function SponsorsPage() {
                 Showing {sponsors.length} of {SAMPLE_SPONSORS.length} companies
               </p>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 auto-rows-max">
-                {sponsors.map((sponsor, index) => (
+                {sponsors.map((sponsor) => (
                   <ModernSponsorCard
                     key={sponsor.id}
                     id={sponsor.id}
                     name={sponsor.company}
                     category={sponsor.sectors.join(', ')}
-                    image={`https://images.unsplash.com/photo-${sponsorPhotoIds[index % sponsorPhotoIds.length]}?w=500&h=500&fit=crop`}
+                    image={sponsor.imageUrl}
                     budget="$10K - $100K"
                   />
                 ))}

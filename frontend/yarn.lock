@@ -1017,9 +1017,9 @@
     "@radix-ui/react-compose-refs" "1.1.2"
 
 "@radix-ui/react-slot@^2.0.2":
-  version "1.3.0-rc.1781217402884"
-  resolved "https://registry.yarnpkg.com/@radix-ui/react-slot/-/react-slot-1.3.0-rc.1781217402884.tgz#c9cd1f35a2631aa30904062da5e71db93e2f8e76"
-  integrity sha512-ig15rgaMyqF78VD3Nscsnu6ANU3ovZs8NoG7Hdjlpro7+z2xMFfS7DeBJYQMkg3y889MACt4lUKbbsjN/vmEBQ==
+  version "1.3.0"
+  resolved "https://registry.yarnpkg.com/@radix-ui/react-slot/-/react-slot-1.3.0.tgz#e311c7a6c8d65b1af9e69af8e3318c6c7105a212"
+  integrity sha512-MojKku4U/miO8Av4Dkb+ctMAQx7JmY96LmtDQlAarCRtd7rN52QCSzBF+XAvr5S6coSVj9HEPBgHAHKEJVk/WA==
   dependencies:
     "@radix-ui/react-compose-refs" "1.1.3"
 
