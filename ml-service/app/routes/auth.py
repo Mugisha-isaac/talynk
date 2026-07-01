@@ -5,6 +5,7 @@ import asyncpg
 import bcrypt
 from fastapi import APIRouter, HTTPException, status
 from pydantic import BaseModel, EmailStr
+from typing import Optional
 
 router = APIRouter(prefix="/auth", tags=["User Authentication"])
 
@@ -21,8 +22,20 @@ class RegisterRequest(BaseModel):
 
 
 class LoginRequest(BaseModel):
-    email: EmailStr
+    username: Optional[str] = None
+    email: Optional[EmailStr] = None
     password: str
+
+
+def _normalize_login_identity(payload: LoginRequest) -> str:
+    candidate = (payload.username or payload.email or "").strip().lower()
+    if not candidate:
+        raise HTTPException(
+            status_code=400,
+            detail="Authentication failed: username (or email) and password are required.",
+        )
+
+    return candidate
 
 
 @router.post("/register", status_code=status.HTTP_201_CREATED)
@@ -75,10 +88,12 @@ async def register_new_user(payload: RegisterRequest):
 @router.post("/login")
 async def login_user(payload: LoginRequest):
     try:
+        login_identity = _normalize_login_identity(payload)
+
         conn = await asyncpg.connect(DATABASE_URL)
         user_record = await conn.fetchrow(
             "SELECT user_id, password_hash, sector FROM platform_users WHERE email = $1",
-            payload.email,
+            login_identity,
         )
         await conn.close()
 
@@ -102,7 +117,7 @@ async def login_user(payload: LoginRequest):
 
         token_payload = {
             "user_id": str(user_record["user_id"]),
-            "email": payload.email,
+            "email": login_identity,
             "sector": user_record["sector"],
             "exp": token_expiration,
         }

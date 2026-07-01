@@ -1,4 +1,4 @@
-import { signServiceToken } from './jwt';
+import { ensureMlServiceToken } from './ml-auth';
 
 const ML_SERVICE_URL =
   process.env.ML_SERVICE_URL || 'http://localhost:8000';
@@ -43,14 +43,15 @@ export function mapFrontendMediaType(
   }
 }
 
-function authHeaders(userId: string): HeadersInit {
+async function authHeaders(): Promise<HeadersInit> {
+  const token = await ensureMlServiceToken();
   return {
-    Authorization: `Bearer ${signServiceToken(userId)}`,
+    Authorization: `Bearer ${token}`,
   };
 }
 
 export async function evaluateMediaQuality(
-  userId: string,
+  talentId: string,
   file: File | Blob,
   mediaType: MlMediaType,
   sector: string,
@@ -58,6 +59,10 @@ export async function evaluateMediaQuality(
 ): Promise<MlEvaluationResult> {
   const formData = new FormData();
   formData.append('sector', sector);
+  // The ML service authenticates every request as a shared service account
+  // (see ml-auth.ts), so without this the evaluation would be recorded under
+  // that shared account instead of the actual talent who uploaded it.
+  formData.append('talent_id', talentId);
   formData.append(
     'file',
     file,
@@ -68,7 +73,7 @@ export async function evaluateMediaQuality(
     `${ML_SERVICE_URL}/api/v1/${mediaType}/evaluate`,
     {
       method: 'POST',
-      headers: authHeaders(userId),
+      headers: await authHeaders(),
       body: formData,
     }
   );
@@ -84,7 +89,7 @@ export async function evaluateMediaQuality(
 }
 
 export async function getSectorRecommendations(
-  userId: string,
+  _userId: string,
   sector: string
 ): Promise<MlRecommendationsResponse> {
   const response = await fetch(
@@ -92,7 +97,7 @@ export async function getSectorRecommendations(
     {
       method: 'POST',
       headers: {
-        ...authHeaders(userId),
+        ...(await authHeaders()),
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({ sector: sector.toLowerCase() }),

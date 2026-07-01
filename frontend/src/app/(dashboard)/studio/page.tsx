@@ -12,6 +12,7 @@ interface UploadedFile {
   size: number;
   progress: number;
   status: 'uploading' | 'processing' | 'done' | 'error';
+  rawFile: File;
 }
 
 /**
@@ -25,6 +26,16 @@ export default function StudioPage() {
   const [category, setCategory] = useState('');
   const [tags, setTags] = useState<string[]>([]);
   const [tagInput, setTagInput] = useState('');
+  const [talentId, setTalentId] = useState<string | null>(null);
+  const [publishing, setPublishing] = useState(false);
+  const [publishError, setPublishError] = useState<string | null>(null);
+
+  React.useEffect(() => {
+    fetch('/api/profile')
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data) => setTalentId(data?.creator?.id ?? null))
+      .catch(() => setTalentId(null));
+  }, []);
 
   const handleDragOver = (e: React.DragEvent) => {
     e.preventDefault();
@@ -51,6 +62,7 @@ export default function StudioPage() {
       size: file.size,
       progress: 0,
       status: 'uploading' as const,
+      rawFile: file,
     }));
 
     setFiles([...files, ...newFiles]);
@@ -127,6 +139,47 @@ export default function StudioPage() {
 
   const removeTag = (tag: string) => {
     setTags(tags.filter((t) => t !== tag));
+  };
+
+  const handlePublish = async () => {
+    if (!talentId) {
+      setPublishError('You need a creator profile before publishing. Finish onboarding first.');
+      return;
+    }
+    if (files.length === 0 || !title) return;
+
+    setPublishing(true);
+    setPublishError(null);
+
+    try {
+      const primary = files[0];
+      const formData = new FormData();
+      formData.append('file', primary.rawFile);
+      formData.append('talentId', talentId);
+      formData.append('title', title);
+      formData.append('description', description);
+      formData.append(
+        'type',
+        primary.type === 'image' ? 'IMAGE' : primary.type === 'video' ? 'VIDEO' : 'AUDIO'
+      );
+      formData.append('sector', category || 'music');
+
+      const response = await fetch('/api/media', {
+        method: 'POST',
+        body: formData,
+      });
+
+      if (!response.ok) {
+        const body = await response.json().catch(() => ({}));
+        throw new Error(body.error || 'Upload failed');
+      }
+
+      window.location.href = `/talents/${talentId}`;
+    } catch (err) {
+      setPublishError(err instanceof Error ? err.message : 'Failed to publish');
+    } finally {
+      setPublishing(false);
+    }
   };
 
   const tabs = [
@@ -320,14 +373,19 @@ export default function StudioPage() {
       <Tabs tabs={tabs} defaultTab="upload" />
 
       {/* Action Buttons */}
+      {publishError && (
+        <p className="mt-4 text-sm text-red-400">{publishError}</p>
+      )}
       <div className="flex gap-4 mt-8">
         <button className="px-6 py-3 rounded-lg border border-border-medium text-text-secondary hover:text-text-primary transition-colors font-medium">
           Save as Draft
         </button>
-        <button className="px-6 py-3 bg-gradient-to-r from-primary-blue to-primary-purple text-white rounded-lg font-semibold hover:shadow-lg hover:shadow-primary-blue/20 transition-all duration-300 disabled:opacity-50"
-          disabled={files.length === 0 || !title}
+        <button
+          onClick={handlePublish}
+          className="px-6 py-3 bg-gradient-to-r from-primary-blue to-primary-purple text-white rounded-lg font-semibold hover:shadow-lg hover:shadow-primary-blue/20 transition-all duration-300 disabled:opacity-50"
+          disabled={files.length === 0 || !title || publishing}
         >
-          Publish Content
+          {publishing ? 'Publishing...' : 'Publish Content'}
         </button>
       </div>
     </PageLayout>

@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React from "react";
 import { FeedLayout } from "@/components/FeedLayout";
 import { MediaCard } from "@/components/MediaCard";
 import { CreatorCard } from "@/components/CreatorCard";
@@ -66,8 +66,6 @@ const PLACEHOLDER_IMAGES: Record<string, string> = {
 };
 
 export default function HomePage() {
-  const [currentRecommendationIndex, setCurrentRecommendationIndex] =
-    useState(0);
   const { recommendations, isLoading, error } = useRecommendations({
     category: "music",
     limit: 5,
@@ -102,15 +100,9 @@ export default function HomePage() {
     ],
   }));
 
-  const activeRecommendations =
-    mlRecommendations.length > 0 ? mlRecommendations : [];
-
-  const handleSkipRecommendation = () => {
-    if (activeRecommendations.length === 0) return;
-    setCurrentRecommendationIndex(
-      (prev) => (prev + 1) % activeRecommendations.length,
-    );
-  };
+  const activeRecommendations = [...mlRecommendations]
+    .sort((a, b) => b.matchScore - a.matchScore)
+    .slice(0, 5);
 
   const renderSidebar = () => (
     <>
@@ -175,12 +167,21 @@ export default function HomePage() {
             Could not load recommendations: {error}
           </div>
         ) : activeRecommendations.length > 0 ? (
-          <AIRecommendationCard
-            {...activeRecommendations[currentRecommendationIndex]}
-            onAccept={() => {}}
-            onReject={handleSkipRecommendation}
-            isPriority
-          />
+          <div className="space-y-4">
+            {activeRecommendations.map((recommendation, index) => (
+              <div key={recommendation.id}>
+                <div className="text-xs uppercase tracking-wider text-cyan-300 mb-2">
+                  Rank #{index + 1} • Score {recommendation.matchScore}
+                </div>
+                <AIRecommendationCard
+                  {...recommendation}
+                  onAccept={() => {}}
+                  onReject={() => {}}
+                  isPriority={index === 0}
+                />
+              </div>
+            ))}
+          </div>
         ) : (
           <div className="rounded-2xl border border-white/10 bg-card/60 p-6 text-muted-foreground">
             No scored media yet. Upload portfolio items to generate ML

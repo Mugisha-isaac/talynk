@@ -53,7 +53,7 @@ async def get_highest_quality_by_sector(payload: SectorFeedRequest):
             FROM platform_media_evaluations
             WHERE sector = $1
             ORDER BY visibility_score DESC
-            LIMIT 15
+            LIMIT 5
         """,
             target_sector,
         )
@@ -85,6 +85,7 @@ async def get_highest_quality_by_sector(payload: SectorFeedRequest):
                         "uploaded_by_user": row["user_id"],
                         "media_type": row["media_type"],
                         "visibility_score": float(row["visibility_score"]),
+                        "prediction_score": float(row["visibility_score"]),
                         "visibility_approved": bool(fair_decisions[idx]),
                     }
                 )
@@ -96,14 +97,12 @@ async def get_highest_quality_by_sector(payload: SectorFeedRequest):
                         "uploaded_by_user": row["user_id"],
                         "media_type": row["media_type"],
                         "visibility_score": float(row["visibility_score"]),
+                        "prediction_score": float(row["visibility_score"]),
                         "visibility_approved": True,
                     }
                 )
 
-        processed_candidates.sort(
-            key=lambda x: (x["visibility_approved"], x["visibility_score"]),
-            reverse=True,
-        )
+        processed_candidates.sort(key=lambda x: x["prediction_score"], reverse=True)
         top_five_feed = processed_candidates[:5]
 
         await redis_client.setex(redis_key, 300, json.dumps(top_five_feed))

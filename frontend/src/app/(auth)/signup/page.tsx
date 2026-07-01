@@ -67,16 +67,27 @@ export default function SignupPage() {
     }
 
     try {
-      // TODO: Implement actual Supabase authentication
-      await new Promise((resolve) => setTimeout(resolve, 1000));
-      
+      const response = await fetch('/api/auth/signup', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name, email, password, role: selectedRole }),
+      });
+
+      const result = await response.json();
+
+      if (!response.ok) {
+        throw new Error(result.error || 'Signup failed. Please try again.');
+      }
+
       // Redirect based on role
       if (selectedRole === UserRole.TALENT) {
-        router.push('/auth/onboarding/creator');
+        router.push('/talents');
       } else if (selectedRole === UserRole.SPONSOR) {
-        router.push('/auth/onboarding/sponsor');
+        router.push('/sponsors');
+      } else if (selectedRole === UserRole.ADMIN) {
+        router.push('/admin');
       } else {
-        router.push('/home');
+        router.push('/dashboard/home');
       }
     } catch (err: any) {
       setError(err.message || 'Signup failed. Please try again.');

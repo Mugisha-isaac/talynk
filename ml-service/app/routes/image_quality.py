@@ -25,9 +25,14 @@ async def evaluate_and_save_image(
     sector: str = Form(...),
     file_url: Optional[str] = Form(None),
     file: Optional[UploadFile] = File(None),
+    talent_id: Optional[str] = Form(None),
     token_payload: dict = Depends(verify_user_jwt),
 ):
-    current_user_id = request.state.user_id
+    # talent_id is the real Talynk creator id (passed by the frontend on behalf
+    # of the caller). The JWT's user_id is the service-account identity used to
+    # authenticate against this API, not the actual content owner, so we prefer
+    # talent_id when it's supplied and only fall back to the token's identity.
+    current_user_id = (talent_id or "").strip() or request.state.user_id
     target_sector = sector.strip().lower()
     file_bytes = None
 

@@ -176,7 +176,7 @@ export function MediaUploadDialog({ talentId, onSuccess }: MediaUploadProps) {
             >
               {SECTOR_CATEGORIES.map((sector) => (
                 <option key={sector.id} value={sector.id}>
-                  {sector.icon} {sector.name}
+                  {sector.icon} {sector.label}
                 </option>
               ))}
             </select>

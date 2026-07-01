@@ -371,16 +371,7 @@ export interface UploadProgress {
   percentage: number;
 }
 
-export const SECTOR_CATEGORIES = [
-  { id: 'music', name: 'Music', icon: '🎵', color: '#EC4899' },
-  { id: 'comedy', name: 'Comedy', icon: '😂', color: '#F59E0B' },
-  { id: 'dance', name: 'Dance', icon: '💃', color: '#A78BFA' },
-  { id: 'sports', name: 'Sports', icon: '⚽', color: '#10B981' },
-  { id: 'art', name: 'Visual Art', icon: '🎨', color: '#06B6D4' },
-  { id: 'performance', name: 'Performance', icon: '🎭', color: '#EF4444' },
-  { id: 'content', name: 'Content Creator', icon: '📹', color: '#3B82F6' },
-  { id: 'fashion', name: 'Fashion', icon: '👗', color: '#FBBF24' },
-] as const;
+export { SECTORS as SECTOR_CATEGORIES } from './../lib/sectors';
 
 export interface MediaItem {
   id: string;

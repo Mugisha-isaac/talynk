@@ -4,8 +4,8 @@
 import React, { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import Image from 'next/image';
-import { Mail, Lock, Loader, Github, Mail as GoogleIcon } from 'lucide-react';
+import { Mail, Lock, Loader } from 'lucide-react';
+import { UserRole } from '@/types';
 
 export default function LoginPage() {
   const router = useRouter();
@@ -20,11 +20,38 @@ export default function LoginPage() {
     setError('');
 
     try {
-      // TODO: Implement actual Supabase authentication
-      // For now, just simulate
-      await new Promise((resolve) => setTimeout(resolve, 1000));
+      const response = await fetch('/api/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password }),
+      });
 
-      // Redirect to dashboard
+      const result = await response.json();
+
+      if (!response.ok) {
+        throw new Error(result.error || 'Login failed. Please try again.');
+      }
+
+      const role = result?.user?.role as UserRole | undefined;
+      if (role) {
+        localStorage.setItem('talynk_user_role', role);
+      }
+
+      if (role === UserRole.TALENT) {
+        router.push('/dashboard/talent');
+        return;
+      }
+
+      if (role === UserRole.SPONSOR) {
+        router.push('/sponsors');
+        return;
+      }
+
+      if (role === UserRole.ADMIN) {
+        router.push('/admin');
+        return;
+      }
+
       router.push('/dashboard/home');
     } catch (err: any) {
       setError(err.message || 'Login failed. Please try again.');
@@ -34,115 +61,81 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-night flex items-center justify-center px-4 py-12 relative overflow-hidden">
-      {/* Decorative background elements */}
-      <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        {/* Top left gradient orb */}
-        <div className="absolute -top-40 -left-40 w-80 h-80 bg-gradient-to-br from-primary-blue/20 to-transparent rounded-full blur-3xl"></div>
-        
-        {/* Bottom right gradient orb */}
-        <div className="absolute -bottom-40 -right-40 w-80 h-80 bg-gradient-to-tl from-accent-success/10 to-transparent rounded-full blur-3xl"></div>
-        
-        {/* Animated grid background */}
-        <div className="absolute inset-0 opacity-5">
-          <svg width="100%" height="100%" xmlns="http://www.w3.org/2000/svg">
-            <defs>
-              <pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse">
-                <path d="M 40 0 L 0 0 0 40" fill="none" stroke="currentColor" strokeWidth="0.5" />
-              </pattern>
-            </defs>
-            <rect width="100%" height="100%" fill="url(#grid)" />
-          </svg>
-        </div>
-      </div>
-
-      <div className="w-full max-w-md relative z-10">
-        {/* Logo & Heading */}
-        <div className="text-center mb-8 animate-fade-in">
-          <div className="flex flex-col items-center gap-3 mb-4">
-            <div className="relative">
-              <div className="absolute inset-0 bg-gradient-to-br from-primary-blue/20 to-accent-success/20 rounded-lg blur-lg"></div>
-              <Image
-                src="/logo.png"
-                alt="Talynk"
-                width={48}
-                height={48}
-                className="rounded-lg relative"
-                priority
-              />
+    <div className="min-h-screen bg-slate-950 flex items-center justify-center px-4 py-12">
+      <div className="w-full max-w-md">
+        <div className="text-center mb-8">
+          <div className="flex flex-col items-center gap-2 mb-6">
+            <div className="w-12 h-12 bg-blue-600 rounded-lg flex items-center justify-center text-white font-bold text-xl">
+              T
             </div>
-            <h1 className="text-3xl font-bold text-white">Talynk</h1>
+            <div>
+              <h1 className="text-2xl font-bold text-white">Talynk</h1>
+              <p className="text-xs text-slate-400">Talent Meets Opportunity</p>
+            </div>
           </div>
-          <p className="text-text-secondary">Welcome back</p>
+          <p className="text-slate-400 text-sm font-medium">Welcome back</p>
         </div>
 
-        {/* Login Card */}
-        <div className="bg-bg-secondary border border-border-medium rounded-2xl p-8 shadow-xl glass-effect animate-scale-in">
-          {/* Error Message */}
+        <div className="bg-slate-900 border border-slate-800 rounded-xl p-6">
           {error && (
-            <div className="mb-6 p-4 bg-accent-error/10 border border-accent-error/30 rounded-lg text-accent-error text-sm animate-slide-down">
+            <div className="mb-4 p-3 bg-red-500/10 border border-red-500/20 rounded-lg text-red-400 text-sm">
               {error}
             </div>
           )}
 
-          {/* Form */}
-          <form onSubmit={handleLogin} className="space-y-5">
-            {/* Email */}
+          <form onSubmit={handleLogin} className="space-y-4">
             <div>
-              <label className="block text-sm font-semibold text-text-primary mb-2">
-                Email Address
+              <label className="block text-sm font-medium text-slate-200 mb-1.5">
+                Email or Username
               </label>
               <div className="relative">
-                <Mail className="absolute left-3 top-3 text-text-muted" size={20} />
+                <Mail className="absolute left-3 top-3 w-4 h-4 text-slate-400" />
                 <input
-                  type="email"
+                  type="text"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  placeholder="you@example.com"
-                  className="w-full bg-bg-tertiary border border-border-medium rounded-lg pl-10 pr-4 py-3 text-text-primary placeholder-text-muted focus:outline-none focus:border-primary-blue focus:ring-1 focus:ring-primary-blue/50 transition-all"
+                  placeholder="your@email.com or username"
+                  className="w-full bg-slate-800 border border-slate-700 rounded-lg pl-10 pr-4 py-2.5 text-slate-100 placeholder-slate-500 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500/30 transition-all text-sm"
                   required
                 />
               </div>
             </div>
 
-            {/* Password */}
             <div>
-              <label className="block text-sm font-semibold text-text-primary mb-2">
+              <label className="block text-sm font-medium text-slate-200 mb-1.5">
                 Password
               </label>
               <div className="relative">
-                <Lock className="absolute left-3 top-3 text-text-muted" size={20} />
+                <Lock className="absolute left-3 top-3 w-4 h-4 text-slate-400" />
                 <input
                   type="password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder="••••••••"
-                  className="w-full bg-bg-tertiary border border-border-medium rounded-lg pl-10 pr-4 py-3 text-text-primary placeholder-text-muted focus:outline-none focus:border-primary-blue focus:ring-1 focus:ring-primary-blue/50 transition-all"
+                  className="w-full bg-slate-800 border border-slate-700 rounded-lg pl-10 pr-4 py-2.5 text-slate-100 placeholder-slate-500 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500/30 transition-all text-sm"
                   required
                 />
               </div>
             </div>
 
-            {/* Remember Me & Forgot Password */}
             <div className="flex items-center justify-between text-sm">
               <label className="flex items-center gap-2 cursor-pointer">
-                <input type="checkbox" className="w-4 h-4 rounded border-border-medium" />
-                <span className="text-text-secondary">Remember me</span>
+                <input type="checkbox" className="w-4 h-4 rounded border-slate-600" />
+                <span className="text-slate-400">Remember me</span>
               </label>
-              <Link href="/auth/forgot-password" className="text-primary-blue hover:text-primary-light transition-colors">
+              <Link href="/auth/forgot-password" className="text-blue-400 hover:text-blue-300 transition-colors">
                 Forgot password?
               </Link>
             </div>
 
-            {/* Sign In Button */}
             <button
               type="submit"
               disabled={loading}
-              className="w-full bg-gradient-primary text-white font-semibold py-3 rounded-lg hover:shadow-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+              className="w-full mt-2 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-600/50 text-white font-medium py-2.5 rounded-lg transition-colors text-sm flex items-center justify-center gap-2"
             >
               {loading ? (
                 <>
-                  <Loader size={20} className="animate-spin" />
+                  <Loader size={16} className="animate-spin" />
                   Signing in...
                 </>
               ) : (
@@ -151,45 +144,13 @@ export default function LoginPage() {
             </button>
           </form>
 
-          {/* Divider */}
-          <div className="my-6 flex items-center gap-4">
-            <div className="flex-1 h-px bg-border-medium"></div>
-            <span className="text-text-muted text-sm">Or continue with</span>
-            <div className="flex-1 h-px bg-border-medium"></div>
-          </div>
-
-          {/* OAuth Buttons */}
-          <div className="space-y-3">
-            <button className="w-full flex items-center justify-center gap-2 bg-bg-tertiary hover:bg-bg-light border border-border-medium text-text-primary font-semibold py-3 rounded-lg transition-all">
-              <GoogleIcon size={20} />
-              Continue with Google
-            </button>
-            <button className="w-full flex items-center justify-center gap-2 bg-bg-tertiary hover:bg-bg-light border border-border-medium text-text-primary font-semibold py-3 rounded-lg transition-all">
-              <Github size={20} />
-              Continue with GitHub
-            </button>
-          </div>
-
-          {/* Sign Up Link */}
-          <p className="mt-6 text-center text-text-secondary">
+          <p className="mt-5 text-center text-slate-400 text-sm">
             Don't have an account?{' '}
-            <Link href="/auth/signup" className="text-primary-blue hover:text-primary-light font-semibold transition-colors">
+            <Link href="/signup" className="text-blue-400 hover:text-blue-300 font-medium transition-colors">
               Sign up
             </Link>
           </p>
         </div>
-
-        {/* Terms */}
-        <p className="text-center text-text-muted text-xs mt-6">
-          By signing in, you agree to our{' '}
-          <Link href="/terms" className="hover:text-text-secondary transition-colors">
-            Terms of Service
-          </Link>
-          {' '}and{' '}
-          <Link href="/privacy" className="hover:text-text-secondary transition-colors">
-            Privacy Policy
-          </Link>
-        </p>
       </div>
     </div>
   );

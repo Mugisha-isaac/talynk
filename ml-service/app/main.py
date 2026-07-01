@@ -1,5 +1,6 @@
 import os
 import asyncio
+import bcrypt
 from contextlib import asynccontextmanager
 from dotenv import load_dotenv
 
@@ -18,6 +19,9 @@ from app.routes import (
 )
 
 DATABASE_URL = os.getenv("DATABASE_URL")
+DEFAULT_ADMIN_USERNAME = os.getenv("ML_DEFAULT_ADMIN_USERNAME", "admin")
+DEFAULT_ADMIN_PASSWORD = os.getenv("ML_DEFAULT_ADMIN_PASSWORD", "admin")
+DEFAULT_ADMIN_SECTOR = os.getenv("ML_DEFAULT_ADMIN_SECTOR", "music")
 
 
 async def init_db_schema():
@@ -55,9 +59,43 @@ async def init_db_schema():
         print("Error: Could not connect to the database to initialize schema.")
 
 
+async def ensure_default_admin_user():
+    try:
+        conn = await asyncpg.connect(DATABASE_URL)
+
+        existing_admin = await conn.fetchrow(
+            "SELECT user_id FROM platform_users WHERE email = $1",
+            DEFAULT_ADMIN_USERNAME,
+        )
+
+        if existing_admin:
+            await conn.close()
+            return
+
+        password_hash = bcrypt.hashpw(
+            DEFAULT_ADMIN_PASSWORD.encode("utf-8"), bcrypt.gensalt()
+        ).decode("utf-8")
+
+        await conn.execute(
+            """
+            INSERT INTO platform_users (email, password_hash, sector)
+            VALUES ($1, $2, $3)
+            """,
+            DEFAULT_ADMIN_USERNAME,
+            password_hash,
+            DEFAULT_ADMIN_SECTOR,
+        )
+
+        await conn.close()
+        print("Default ML admin user created: admin/admin")
+    except Exception as e:
+        print(f"Warning: failed to ensure default admin user. Error: {e}")
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     await init_db_schema()
+    await ensure_default_admin_user()
     yield
 
 

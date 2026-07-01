@@ -5,32 +5,72 @@ import { Footer } from '@/components/Footer';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Heart, Share2, MessageCircle, MapPin, BadgeCheck, Star, Play } from 'lucide-react';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 
 export default function TalentProfilePage({ params }: { params: { id: string } }) {
   const [saved, setSaved] = useState(false);
+  const [talent, setTalent] = useState<any | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  // This would normally fetch from API
-  const talent = {
-    id: params.id,
-    name: 'Sarah Anderson',
-    sector: 'Photography',
-    location: 'Kigali, Rwanda',
-    verified: true,
-    rating: 4.9,
-    reviews: 38,
-    bio: 'Professional photographer specializing in portrait and landscape photography with 10+ years experience',
-    stats: [
-      { label: 'Projects', value: '120+' },
-      { label: 'Clients', value: '60+' },
-      { label: 'Years active', value: '10' },
-    ],
-    portfolio: [
-      { title: 'Portrait Series', type: 'images', count: 24, cover: 'https://upload.wikimedia.org/wikipedia/commons/f/fe/Sarah_Andersen_-_Lucca_Comics_%26_Games_2016.jpg' },
-      { title: 'Landscape Collection', type: 'images', count: 18, cover: 'https://media.istockphoto.com/id/610259354/photo/young-woman-using-dslr-camera.jpg?s=612x612&w=0&k=20&c=gjAR4JiqA8lkGQzssSrXxo3yl-cwr5j7Hy47cy-10c4=' },
-      { title: 'Documentary', type: 'video', count: 3, cover: 'https://i0.wp.com/digital-photography-school.com/wp-content/uploads/2021/03/amateur-vs-professional-photographer-1-1.jpg?fit=1500%2C1000&ssl=1' },
-    ],
-  };
+  useEffect(() => {
+    const fetchTalent = async () => {
+      try {
+        const response = await fetch(`/api/talents/${params.id}`);
+        const result = await response.json();
+        if (!response.ok || !result.success) {
+          throw new Error(result.error || 'Talent not found');
+        }
+        setTalent({
+          id: result.data.id,
+          name: result.data.name,
+          sector: result.data.category,
+          location: result.data.location || 'Unknown',
+          verified: false,
+          rating: result.data.visibilityScore ? result.data.visibilityScore / 20 : 0,
+          reviews: 0,
+          bio: result.data.bio || '',
+          stats: [
+            { label: 'Followers', value: result.data.followers?.toLocaleString() ?? '0' },
+            { label: 'Content', value: String(result.data.portfolio?.length ?? 0) },
+            { label: 'Visibility score', value: String(Math.round(result.data.visibilityScore ?? 0)) },
+          ],
+          portfolio: (result.data.portfolio || []).map((item: any) => ({
+            title: item.title,
+            type: item.type === 'IMAGE' ? 'images' : item.type === 'VIDEO' ? 'video' : 'audio',
+            count: 1,
+            cover: item.cover,
+          })),
+        });
+      } catch (err) {
+        setError(err instanceof Error ? err.message : 'Failed to load talent');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchTalent();
+  }, [params.id]);
+
+  if (loading) {
+    return (
+      <>
+        <Navigation />
+        <div className="p-10 text-center text-muted-foreground">Loading...</div>
+        <Footer />
+      </>
+    );
+  }
+
+  if (error || !talent) {
+    return (
+      <>
+        <Navigation />
+        <div className="p-10 text-center text-muted-foreground">{error || 'Talent not found'}</div>
+        <Footer />
+      </>
+    );
+  }
 
   return (
     <>
@@ -77,7 +117,7 @@ export default function TalentProfilePage({ params }: { params: { id: string } }
 
               {/* Stats */}
               <div className="flex gap-6 mb-6">
-                {talent.stats.map((s) => (
+                {talent.stats.map((s: { label: string; value: string }) => (
                   <div key={s.label}>
                     <p className="text-xl font-bold text-foreground">{s.value}</p>
                     <p className="text-xs text-muted-foreground">{s.label}</p>
@@ -116,7 +156,7 @@ export default function TalentProfilePage({ params }: { params: { id: string } }
           </div>
 
           <div className="grid sm:grid-cols-2 md:grid-cols-3 gap-6">
-            {talent.portfolio.map((item, idx) => (
+            {talent.portfolio.map((item: { title: string; type: string; count: number; cover: string }, idx: number) => (
               <button
                 key={idx}
                 className="group relative aspect-square rounded-xl overflow-hidden bg-muted text-left focus:outline-none focus-visible:ring-2 focus-visible:ring-primary"

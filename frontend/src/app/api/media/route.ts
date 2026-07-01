@@ -1,62 +1,24 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { resolveUserId } from '@/lib/auth-request';
+import { prisma } from '@/lib/prisma';
 import { classifyMediaLocally } from '@/lib/classification';
 import {
   evaluateMediaQuality,
   mapFrontendMediaType,
 } from '@/lib/ml-service';
+import {
+  uploadToCloudinary,
+  contentTypeToCloudinaryResource,
+} from '@/lib/cloudinary';
 
-const mockMedia: Array<{
-  id: string;
-  talentId: string;
-  title: string;
-  description: string;
-  type: string;
-  fileUrl: string;
-  sector: { id: string; name: string };
-  confidenceScore: number;
-  visibilityScore?: number;
-  mlScored: boolean;
-  createdAt: Date;
-}> = [
-  {
-    id: 'media-1',
-    talentId: 'talent-1',
-    title: 'Amara Studio Sessions',
-    description: 'Professional recording session',
-    type: 'VIDEO',
-    fileUrl:
-      'https://images.unsplash.com/photo-1598488035139-bdbb2231ce04?w=800',
-    sector: { id: 'music', name: 'Music' },
-    confidenceScore: 95,
-    visibilityScore: 95,
-    mlScored: false,
-    createdAt: new Date(),
-  },
-  {
-    id: 'media-2',
-    talentId: 'talent-2',
-    title: 'Visual Arts Showcase',
-    description: 'Digital art collection',
-    type: 'IMAGE',
-    fileUrl:
-      'https://images.unsplash.com/photo-1579783902614-e3fb5141b0cb?w=800',
-    sector: { id: 'art', name: 'Visual Art' },
-    confidenceScore: 88,
-    visibilityScore: 88,
-    mlScored: false,
-    createdAt: new Date(),
-  },
-];
-
+// POST /api/media - Upload a portfolio item (Cloudinary + Prisma + ML scoring)
 export async function POST(request: NextRequest) {
   try {
     const formData = await request.formData();
     const file = formData.get('file') as File;
-    const talentId = formData.get('talentId') as string;
+    const talentId = formData.get('talentId') as string; // Creator.id
     const title = formData.get('title') as string;
     const description = (formData.get('description') as string) || '';
-    const mediaType = formData.get('type') as string;
+    const mediaType = formData.get('type') as 'AUDIO' | 'VIDEO' | 'IMAGE';
     const sectorId =
       (formData.get('sector') as string)?.trim().toLowerCase() || 'music';
 
@@ -67,57 +29,104 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const userId = resolveUserId(request, talentId);
+    const creator = await prisma.creator.findUnique({
+      where: { id: talentId },
+    });
+    if (!creator) {
+      return NextResponse.json(
+        { error: 'Talent profile not found' },
+        { status: 404 }
+      );
+    }
+
+    // 1. Upload the real file to Cloudinary first - everything below uses its URL.
+    const uploaded = await uploadToCloudinary(file, {
+      folder: `talynk/${talentId}`,
+      resourceType: contentTypeToCloudinaryResource(mediaType),
+    });
+
+    // 2. Local heuristic classification (sector tagging) + ML quality scoring.
     const localMediaType =
-      mediaType === 'AUDIO'
-        ? 'audio'
-        : mediaType === 'VIDEO'
-          ? 'video'
-          : 'image';
+      mediaType === 'AUDIO' ? 'audio' : mediaType === 'VIDEO' ? 'video' : 'image';
     const classification = await classifyMediaLocally(file, localMediaType);
-    let visibilityScore: number | undefined;
+
+    let overallScore = Math.round(classification.confidence * 100);
     let mlScored = false;
 
     const mlMediaType = mapFrontendMediaType(mediaType);
     if (mlMediaType) {
       try {
+        // Pass the Creator.id (talentId), not the requester's userId, so the
+        // ML service attributes this score to the correct talent regardless
+        // of which service-account is used to authenticate to it.
         const mlResult = await evaluateMediaQuality(
-          userId,
+          talentId,
           file,
           mlMediaType,
           sectorId,
           file.name
         );
-        visibilityScore = mlResult.visibility_score;
+        overallScore = mlResult.visibility_score;
         mlScored = true;
       } catch (mlError) {
         console.warn('ML service unavailable, using local classification:', mlError);
-        visibilityScore = Math.round(classification.confidence * 100);
       }
-    } else {
-      visibilityScore = Math.round(classification.confidence * 100);
     }
 
-    const newMedia = {
-      id: `media-${mockMedia.length + 1}`,
-      talentId,
-      title,
-      description,
-      type: mediaType,
-      fileUrl: `/uploads/${file.name}`,
+    // 3. Persist the content item (+ quality score) in Postgres.
+    const contentItem = await prisma.contentItem.create({
+      data: {
+        creatorId: talentId,
+        title,
+        description,
+        contentType: mediaType,
+        discipline: creator.discipline,
+        mediaUrl: uploaded.url,
+        cloudinaryPublicId: uploaded.publicId,
+        status: 'PUBLISHED',
+        qualityScore: {
+          create: {
+            technicalQuality: overallScore,
+            structuralCoherence: overallScore,
+            originality: overallScore,
+            genreAppropriateness: overallScore,
+            accessibility: overallScore,
+            overallScore,
+          },
+        },
+      },
+      include: { qualityScore: true },
+    });
+
+    // Keep the Creator's cached visibility score in sync so talent listings
+    // and admin views (which sort/display visibilityScoreCurrent) reflect
+    // the latest ML-evaluated portfolio quality, not a stale 0.
+    const aggregate = await prisma.qualityScore.aggregate({
+      where: { contentItem: { creatorId: talentId } },
+      _avg: { overallScore: true },
+    });
+    await prisma.creator.update({
+      where: { id: talentId },
+      data: { visibilityScoreCurrent: aggregate._avg.overallScore ?? overallScore },
+    });
+
+    return NextResponse.json({
+      id: contentItem.id,
+      talentId: contentItem.creatorId,
+      title: contentItem.title,
+      description: contentItem.description,
+      type: contentItem.contentType,
+      fileUrl: contentItem.mediaUrl,
       sector: { id: sectorId, name: sectorId },
-      confidenceScore: visibilityScore,
-      visibilityScore,
+      visibilityScore: overallScore,
+      confidenceScore: overallScore,
       mlScored,
       classification: {
         sector: classification.sector,
         labels: classification.labels,
       },
-      createdAt: new Date(),
-    };
-
-    mockMedia.push(newMedia);
-    return NextResponse.json(newMedia);
+      createdAt: contentItem.uploadDate,
+    });
   } catch (error) {
     console.error('Media upload error:', error);
     return NextResponse.json(
@@ -127,6 +136,7 @@ export async function POST(request: NextRequest) {
   }
 }
 
+// GET /api/media?talentId= - List a creator's published content
 export async function GET(request: NextRequest) {
   try {
     const talentId = request.nextUrl.searchParams.get('talentId');
@@ -138,13 +148,27 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    const media = mockMedia
-      .filter((m) => m.talentId === talentId)
-      .sort(
-        (a, b) =>
-          (b.visibilityScore ?? b.confidenceScore) -
-          (a.visibilityScore ?? a.confidenceScore)
-      );
+    const items = await prisma.contentItem.findMany({
+      where: { creatorId: talentId },
+      include: { qualityScore: true },
+      orderBy: { uploadDate: 'desc' },
+    });
+
+    const media = items
+      .map((item) => ({
+        id: item.id,
+        talentId: item.creatorId,
+        title: item.title,
+        description: item.description,
+        type: item.contentType,
+        fileUrl: item.mediaUrl,
+        status: item.status,
+        visibilityScore: item.qualityScore?.overallScore ?? 0,
+        confidenceScore: item.qualityScore?.overallScore ?? 0,
+        mlScored: !!item.qualityScore,
+        createdAt: item.uploadDate,
+      }))
+      .sort((a, b) => b.visibilityScore - a.visibilityScore);
 
     return NextResponse.json(media);
   } catch (error) {
