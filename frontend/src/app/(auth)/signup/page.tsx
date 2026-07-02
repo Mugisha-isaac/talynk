@@ -83,7 +83,7 @@ export default function SignupPage() {
       if (selectedRole === UserRole.TALENT) {
         router.push('/talents');
       } else if (selectedRole === UserRole.SPONSOR) {
-        router.push('/sponsors');
+        router.push('/talents');
       } else if (selectedRole === UserRole.ADMIN) {
         router.push('/admin');
       } else {

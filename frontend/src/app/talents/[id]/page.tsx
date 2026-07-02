@@ -4,11 +4,19 @@ import { Navigation } from '@/components/Navigation';
 import { Footer } from '@/components/Footer';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Heart, Share2, MessageCircle, MapPin, BadgeCheck, Star, Play } from 'lucide-react';
+import { PortfolioCard, PortfolioItemVM } from '@/components/PortfolioCard';
+import {
+  Heart,
+  MessageCircle,
+  MapPin,
+  BadgeCheck,
+  Star,
+} from 'lucide-react';
 import { useState, useEffect } from 'react';
 
 export default function TalentProfilePage({ params }: { params: { id: string } }) {
   const [saved, setSaved] = useState(false);
+  const [saveBusy, setSaveBusy] = useState(false);
   const [talent, setTalent] = useState<any | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -21,13 +29,16 @@ export default function TalentProfilePage({ params }: { params: { id: string } }
         if (!response.ok || !result.success) {
           throw new Error(result.error || 'Talent not found');
         }
+        setSaved(!!result.data.saved);
         setTalent({
           id: result.data.id,
           name: result.data.name,
           sector: result.data.category,
           location: result.data.location || 'Unknown',
           verified: false,
-          rating: result.data.visibilityScore ? result.data.visibilityScore / 20 : 0,
+          rating: result.data.visibilityScore
+            ? Math.round((result.data.visibilityScore / 20) * 10) / 10
+            : 0,
           reviews: 0,
           bio: result.data.bio || '',
           stats: [
@@ -36,11 +47,16 @@ export default function TalentProfilePage({ params }: { params: { id: string } }
             { label: 'Visibility score', value: String(Math.round(result.data.visibilityScore ?? 0)) },
           ],
           portfolio: (result.data.portfolio || []).map((item: any) => ({
+            id: item.id,
             title: item.title,
             type: item.type === 'IMAGE' ? 'images' : item.type === 'VIDEO' ? 'video' : 'audio',
             count: 1,
             cover: item.cover,
-          })),
+            likeCount: item.likeCount ?? 0,
+            shareCount: item.shareCount ?? 0,
+            commentCount: item.commentCount ?? 0,
+            likedByMe: !!item.likedByMe,
+          })) as PortfolioItemVM[],
         });
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Failed to load talent');
@@ -51,6 +67,23 @@ export default function TalentProfilePage({ params }: { params: { id: string } }
 
     fetchTalent();
   }, [params.id]);
+
+  const toggleSave = async () => {
+    if (saveBusy) return;
+    setSaveBusy(true);
+    const next = !saved;
+    setSaved(next);
+    try {
+      const res = await fetch(`/api/talents/${params.id}/save`, { method: 'POST' });
+      if (!res.ok) throw new Error();
+      const result = await res.json();
+      setSaved(result.saved);
+    } catch {
+      setSaved(!next);
+    } finally {
+      setSaveBusy(false);
+    }
+  };
 
   if (loading) {
     return (
@@ -101,6 +134,11 @@ export default function TalentProfilePage({ params }: { params: { id: string } }
               <div className="flex flex-wrap items-center gap-3 mb-2">
                 <h1 className="text-3xl md:text-4xl font-bold text-foreground">{talent.name}</h1>
                 <Badge>{talent.sector}</Badge>
+                {saved && (
+                  <Badge variant="secondary" className="gap-1">
+                    <Heart className="w-3 h-3 fill-current" /> Favorite
+                  </Badge>
+                )}
               </div>
 
               <div className="flex flex-wrap items-center gap-4 text-sm text-muted-foreground mb-4">
@@ -133,13 +171,11 @@ export default function TalentProfilePage({ params }: { params: { id: string } }
                 <Button
                   variant={saved ? 'default' : 'outline'}
                   className="gap-2"
-                  onClick={() => setSaved(!saved)}
+                  onClick={toggleSave}
+                  disabled={saveBusy}
                 >
                   <Heart className={`w-4 h-4 ${saved ? 'fill-current' : ''}`} />
                   {saved ? 'Saved' : 'Save'}
-                </Button>
-                <Button variant="outline" size="icon" aria-label="Share profile">
-                  <Share2 className="w-4 h-4" />
                 </Button>
               </div>
             </div>
@@ -156,35 +192,8 @@ export default function TalentProfilePage({ params }: { params: { id: string } }
           </div>
 
           <div className="grid sm:grid-cols-2 md:grid-cols-3 gap-6">
-            {talent.portfolio.map((item: { title: string; type: string; count: number; cover: string }, idx: number) => (
-              <button
-                key={idx}
-                className="group relative aspect-square rounded-xl overflow-hidden bg-muted text-left focus:outline-none focus-visible:ring-2 focus-visible:ring-primary"
-              >
-                {/* Cover image with graceful fallback */}
-                <img
-                  src={item.cover}
-                  alt={item.title}
-                  onError={(e) => {
-                    e.currentTarget.style.display = 'none';
-                  }}
-                  className="absolute inset-0 w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
-                />
-                <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/10 to-transparent" />
-
-                {item.type === 'video' && (
-                  <span className="absolute top-3 right-3 bg-black/60 rounded-full p-2">
-                    <Play className="w-4 h-4 text-white fill-white" />
-                  </span>
-                )}
-
-                <div className="absolute bottom-0 left-0 right-0 p-4">
-                  <p className="font-semibold text-white">{item.title}</p>
-                  <p className="text-xs text-white/70">
-                    {item.count} {item.type === 'video' ? 'videos' : 'photos'}
-                  </p>
-                </div>
-              </button>
+            {talent.portfolio.map((item: PortfolioItemVM) => (
+              <PortfolioCard key={item.id} item={item} />
             ))}
           </div>
         </div>

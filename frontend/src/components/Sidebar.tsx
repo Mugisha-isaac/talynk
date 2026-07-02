@@ -38,8 +38,8 @@ export function Sidebar({ isAuthenticated = false, userRole = 'TALENT' }: Sideba
       icon: Home,
     },
     {
-      label: userRole === 'TALENT' ? 'Browse Sponsors' : 'Browse Talents',
-      href: userRole === 'TALENT' ? '/sponsors' : '/talents',
+      label: userRole === 'TALENT' ? 'My Portfolio' : 'Browse Talents',
+      href: userRole === 'TALENT' ? '/talent' : '/talents',
       icon: Users,
     },
     {

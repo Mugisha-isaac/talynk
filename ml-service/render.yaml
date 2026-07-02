@@ -1,0 +1,31 @@
+databases:
+  - name: talynk-postgres
+    plan: starter # the free plan is auto-deleted after 30 days — don't use it for anything you need to keep
+    region: oregon # keep this the same as the web service's region below
+
+services:
+  - type: web
+    name: talynk-ml-service
+    runtime: docker
+    dockerfilePath: ./Dockerfile
+    dockerContext: .
+    plan: standard # torch + transformers need real RAM — starter/free tiers will likely OOM
+    region: oregon
+    healthCheckPath: /health
+    envVars:
+      - key: DATABASE_URL
+        fromDatabase:
+          name: talynk-postgres
+          property: connectionString # Internal URL — same private network, no SSL needed, no egress cost
+      - key: REDIS_URL
+        sync: false # set to your shared Redis connection string
+      - key: JWT_SECRET_KEY
+        sync: false # MUST match the frontend's JWT_SECRET_KEY exactly
+      - key: ML_DEFAULT_ADMIN_USERNAME
+        sync: false
+      - key: ML_DEFAULT_ADMIN_PASSWORD
+        sync: false
+      - key: ML_DEFAULT_ADMIN_SECTOR
+        value: music
+      - key: HF_TOKEN
+        sync: false # optional, avoids HF Hub rate limiting on model downloads

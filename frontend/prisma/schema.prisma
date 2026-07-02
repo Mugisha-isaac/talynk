@@ -23,6 +23,7 @@ model User {
 
   creator        Creator?
   audienceMember AudienceMember?
+  comments       Comment[]
 
   @@map("users")
 }
@@ -103,6 +104,7 @@ model ContentItem {
   qualityScore    QualityScore?
   interactions    Interaction[]
   recommendations Recommendation[]
+  comments        Comment[]
 
   @@map("content_items")
 }
@@ -118,6 +120,18 @@ enum ContentStatus {
   PUBLISHED
   REJECTED
   FLAGGED
+}
+
+model Comment {
+  id            String      @id @default(cuid())
+  contentItem   ContentItem @relation(fields: [contentItemId], references: [id])
+  contentItemId String
+  author        User        @relation(fields: [authorId], references: [id])
+  authorId      String
+  body          String
+  createdAt     DateTime    @default(now())
+
+  @@map("comments")
 }
 
 model QualityScore {

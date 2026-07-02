@@ -53,7 +53,7 @@ export const DashboardNav: React.FC<DashboardNavProps> = ({ userRole = 'TALENT',
 
   const settings = [
     { href: '/dashboard/setup', label: 'Setup', icon: Grid },
-    { href: '/dashboard/settings', label: 'Settings', icon: Settings },
+    { href: '/settings', label: 'Settings', icon: Settings },
   ];
 
   const NavLink = ({ href, label, icon: Icon, isActive = false }: any) => (

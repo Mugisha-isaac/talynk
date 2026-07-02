@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { Prisma } from '@prisma/client';
 import { sectorIdToDiscipline, disciplineToLabel } from '@/lib/sectors';
+import { decodeTokenUserId } from '@/lib/jwt';
 
 // GET /api/talents?page=&limit=&category=&search=
 export async function GET(request: NextRequest) {
@@ -36,18 +37,50 @@ export async function GET(request: NextRequest) {
       prisma.creator.count({ where }),
     ]);
 
-    const data = creators.map((creator) => ({
-      id: creator.id,
-      name: creator.user.username,
-      avatar: creator.user.profilePicture,
-      category: creator.discipline,
-      categoryLabel: disciplineToLabel(creator.discipline),
-      verified: false,
-      followers: creator.followerCount,
-      visibilityScore: creator.visibilityScoreCurrent,
-      bio: creator.bio,
-      location: creator.location,
-    }));
+    // AI-recommended = currently in the global top 5 by visibility score,
+    // regardless of which page/sector is being viewed.
+    const topFive = await prisma.creator.findMany({
+      take: 5,
+      orderBy: { visibilityScoreCurrent: 'desc' },
+      select: { id: true },
+    });
+    const recommendedIds = new Set(topFive.map((c) => c.id));
+
+    // Saved (favorited) by the current viewer, if authenticated.
+    let savedIds = new Set<string>();
+    const token = request.cookies.get('talynk_token')?.value;
+    const userId = token ? decodeTokenUserId(token) : null;
+    if (userId) {
+      const member = await prisma.audienceMember.findUnique({
+        where: { userId },
+        select: { id: true },
+      });
+      if (member) {
+        const follows = await prisma.follow.findMany({
+          where: { followerId: member.id, creatorId: { in: creators.map((c) => c.id) } },
+          select: { creatorId: true },
+        });
+        savedIds = new Set(follows.map((f) => f.creatorId));
+      }
+    }
+
+    const data = creators
+      .map((creator) => ({
+        id: creator.id,
+        name: creator.user.username,
+        avatar: creator.user.profilePicture,
+        category: creator.discipline,
+        categoryLabel: disciplineToLabel(creator.discipline),
+        verified: false,
+        followers: creator.followerCount,
+        visibilityScore: creator.visibilityScoreCurrent,
+        bio: creator.bio,
+        location: creator.location,
+        recommended: recommendedIds.has(creator.id),
+        saved: savedIds.has(creator.id),
+      }))
+      // Saved talents surface first (stable sort keeps score ordering within each group).
+      .sort((a, b) => Number(b.saved) - Number(a.saved));
 
     return NextResponse.json(
       {

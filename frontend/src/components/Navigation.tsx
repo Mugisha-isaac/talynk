@@ -13,13 +13,12 @@ interface NavigationProps {
 function dashboardHref(role: 'TALENT' | 'SPONSOR' | 'ADMIN'): string {
   if (role === 'ADMIN') return '/admin';
   if (role === 'TALENT') return '/dashboard/talent';
-  return '/sponsors';
+  return '/talents';
 }
 
 function settingsHref(role: 'TALENT' | 'SPONSOR' | 'ADMIN'): string {
   if (role === 'ADMIN') return '/admin';
-  if (role === 'TALENT') return '/dashboard/talent/settings';
-  return '/dashboard/sponsor/settings';
+  return '/settings';
 }
 
 export function Navigation({
@@ -122,12 +121,14 @@ export function Navigation({
             >
               Talents
             </Link>
-            <Link
-              href="/sponsors"
-              className="text-sm text-gray-300 hover:text-white transition-colors"
-            >
-              Sponsors
-            </Link>
+            {userRole !== 'TALENT' && (
+              <Link
+                href="/sponsors"
+                className="text-sm text-gray-300 hover:text-white transition-colors"
+              >
+                Sponsors
+              </Link>
+            )}
             <Link
               href="/about"
               className="text-sm text-gray-300 hover:text-white transition-colors"
@@ -202,13 +203,15 @@ export function Navigation({
             >
               Talents
             </Link>
-            <Link
-              href="/sponsors"
-              className="block text-sm text-gray-300 hover:text-white transition-colors"
-              onClick={() => setIsOpen(false)}
-            >
-              Sponsors
-            </Link>
+            {userRole !== 'TALENT' && (
+              <Link
+                href="/sponsors"
+                className="block text-sm text-gray-300 hover:text-white transition-colors"
+                onClick={() => setIsOpen(false)}
+              >
+                Sponsors
+              </Link>
+            )}
             <Link
               href="/about"
               className="block text-sm text-gray-300 hover:text-white transition-colors"

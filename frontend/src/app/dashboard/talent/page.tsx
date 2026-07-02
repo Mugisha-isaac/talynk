@@ -3,5 +3,5 @@
 import { redirect } from 'next/navigation';
 
 export default function TalentDashboard() {
-  redirect('/home');
+  redirect('/talent');
 }

@@ -2,9 +2,9 @@
 
 import Image from 'next/image';
 import Link from 'next/link';
-import { Heart, Play, MoreVertical, User } from 'lucide-react';
+import { Heart, Play, MoreVertical, User, Sparkles } from 'lucide-react';
 import { Button } from './ui/button';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 
 interface ModernTalentCardProps {
   id: string;
@@ -14,6 +14,7 @@ interface ModernTalentCardProps {
   rating?: number;
   views?: number;
   isLiked?: boolean;
+  recommended?: boolean;
   onLike?: () => void;
 }
 
@@ -25,13 +26,21 @@ export function ModernTalentCard({
   rating = 4.5,
   views = 1200,
   isLiked = false,
+  recommended = false,
   onLike,
 }: ModernTalentCardProps) {
   const [liked, setLiked] = useState(isLiked);
   const [showMenu, setShowMenu] = useState(false);
   const [imageError, setImageError] = useState(false);
 
-  const handleLike = () => {
+  // Keep in sync if the parent refetches and the real saved state changes
+  // (e.g. after the toggle round-trips to the backend).
+  useEffect(() => {
+    setLiked(isLiked);
+  }, [isLiked]);
+
+  const handleLike = (e: React.MouseEvent) => {
+    e.preventDefault();
     setLiked(!liked);
     onLike?.();
   };
@@ -61,6 +70,24 @@ export function ModernTalentCard({
             {/* Subtle Overlay */}
             <div className="absolute inset-0 bg-gradient-to-t from-slate-950/40 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
 
+            {/* Top-left status badges - always visible, not just on hover */}
+            {(recommended || liked) && (
+              <div className="absolute top-3 left-3 flex flex-col gap-1.5">
+                {recommended && (
+                  <span className="inline-flex items-center gap-1 bg-blue-500/90 text-white text-[11px] font-semibold px-2 py-1 rounded-full backdrop-blur-sm shadow">
+                    <Sparkles className="w-3 h-3" />
+                    Recommended
+                  </span>
+                )}
+                {liked && (
+                  <span className="inline-flex items-center gap-1 bg-red-500/90 text-white text-[11px] font-semibold px-2 py-1 rounded-full backdrop-blur-sm shadow">
+                    <Heart className="w-3 h-3 fill-current" />
+                    Favorite
+                  </span>
+                )}
+              </div>
+            )}
+
             {/* Play Button */}
             <button
               className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300"
@@ -88,13 +115,11 @@ export function ModernTalentCard({
               </Button>
             </div>
 
-            {/* Like Button */}
+            {/* Save/Favorite Button */}
             <button
               className="absolute bottom-3 right-3 opacity-0 group-hover:opacity-100 transition-opacity duration-300"
-              onClick={(e) => {
-                e.preventDefault();
-                handleLike();
-              }}
+              onClick={handleLike}
+              aria-label={liked ? 'Remove from favorites' : 'Save to favorites'}
             >
               <div
                 className={`w-9 h-9 rounded-full flex items-center justify-center transition-all duration-200 backdrop-blur-sm shadow-lg ${

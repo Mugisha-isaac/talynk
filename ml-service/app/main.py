@@ -16,6 +16,7 @@ from app.routes import (
     image_quality,
     video_quality,
     recommendations,
+    health,
 )
 
 DATABASE_URL = os.getenv("DATABASE_URL")
@@ -106,6 +107,7 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
+app.include_router(health.router)
 app.include_router(auth.router, prefix="/api/v1")
 app.include_router(audio_quality.router, prefix="/api/v1")
 app.include_router(image_quality.router, prefix="/api/v1")
