@@ -17,8 +17,6 @@ services:
         fromDatabase:
           name: talynk-postgres
           property: connectionString # Internal URL — same private network, no SSL needed, no egress cost
-      - key: REDIS_URL
-        sync: false # set to your shared Redis connection string
       - key: JWT_SECRET_KEY
         sync: false # MUST match the frontend's JWT_SECRET_KEY exactly
       - key: ML_DEFAULT_ADMIN_USERNAME

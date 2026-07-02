@@ -1,18 +1,16 @@
 import os
-import json
 import asyncpg
-import redis.asyncio as aioredis
 import joblib
 import pandas as pd
 import numpy as np
 from fastapi import APIRouter, HTTPException, Depends
 from pydantic import BaseModel
 from app.middleware.auth import verify_user_jwt
+from app.lib import cache
 
 router = APIRouter(prefix="/recommendations", tags=["Recommendation Engine"])
 
 DATABASE_URL = os.getenv("DATABASE_URL")
-REDIS_URL = os.getenv("REDIS_URL")
 
 weights_dir = os.path.join(
     os.path.dirname(os.path.dirname(__file__)), "models", "weights"
@@ -31,19 +29,16 @@ class SectorFeedRequest(BaseModel):
 @router.post("/sector-top-five", dependencies=[Depends(verify_user_jwt)])
 async def get_highest_quality_by_sector(payload: SectorFeedRequest):
     target_sector = payload.sector.strip().lower()
-    redis_key = f"cache:sector:{target_sector}:top5"
+    cache_key = f"cache:sector:{target_sector}:top5"
 
     try:
-        redis_client = aioredis.from_url(REDIS_URL, decode_responses=True)
-        cached_json = await redis_client.get(redis_key)
-
-        if cached_json:
-            await redis_client.close()
+        cached_results = cache.get(cache_key)
+        if cached_results is not None:
             return {
                 "status": "success",
                 "sector": target_sector,
                 "source": "cache",
-                "results": json.loads(cached_json),
+                "results": cached_results,
             }
 
         pg_conn = await asyncpg.connect(DATABASE_URL)
@@ -60,7 +55,6 @@ async def get_highest_quality_by_sector(payload: SectorFeedRequest):
         await pg_conn.close()
 
         if not rows:
-            await redis_client.close()
             return {
                 "status": "success",
                 "sector": target_sector,
@@ -105,8 +99,7 @@ async def get_highest_quality_by_sector(payload: SectorFeedRequest):
         processed_candidates.sort(key=lambda x: x["prediction_score"], reverse=True)
         top_five_feed = processed_candidates[:5]
 
-        await redis_client.setex(redis_key, 300, json.dumps(top_five_feed))
-        await redis_client.close()
+        cache.setex(cache_key, 300, top_five_feed)
 
         return {
             "status": "success",

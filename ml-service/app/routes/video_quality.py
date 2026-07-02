@@ -2,7 +2,6 @@ import os
 import io
 import requests
 import asyncpg
-import redis.asyncio as aioredis
 import torch
 import torchvision.io as tv_io
 from PIL import Image
@@ -10,11 +9,11 @@ from fastapi import APIRouter, HTTPException, Depends, Request, Form, UploadFile
 from typing import Optional
 from app.models.nima_clip_loader import load_visual_pipeline
 from app.middleware.auth import verify_user_jwt
+from app.lib import cache
 
 router = APIRouter(prefix="/video", tags=["Video Evaluation"])
 
 DATABASE_URL = os.getenv("DATABASE_URL")
-REDIS_URL = os.getenv("REDIS_URL")
 
 visual_processor, visual_model = load_visual_pipeline()
 
@@ -93,10 +92,7 @@ async def evaluate_and_save_video(
         )
         await pg_conn.close()
 
-        if REDIS_URL:
-            redis_client = aioredis.from_url(REDIS_URL)
-            await redis_client.delete(f"cache:sector:{target_sector}:top5")
-            await redis_client.close()
+        cache.delete(f"cache:sector:{target_sector}:top5")
 
         return {
             "status": "success",

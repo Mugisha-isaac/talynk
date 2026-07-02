@@ -2,18 +2,17 @@ import os
 import io
 import requests
 import asyncpg
-import redis.asyncio as aioredis
 import torch
 from PIL import Image
 from fastapi import APIRouter, HTTPException, Depends, Request, Form, UploadFile, File
 from typing import Optional
 from app.models.nima_clip_loader import load_visual_pipeline
 from app.middleware.auth import verify_user_jwt
+from app.lib import cache
 
 router = APIRouter(prefix="/image", tags=["Image Evaluation"])
 
 DATABASE_URL = os.getenv("DATABASE_URL")
-REDIS_URL = os.getenv("REDIS_URL")
 
 # Share the same high-performance NIMA + CLIP visual model pipeline
 visual_processor, visual_model = load_visual_pipeline()
@@ -80,11 +79,8 @@ async def evaluate_and_save_image(
         )
         await pg_conn.close()
 
-        # Evict stale Redis cache tracking lines for this sector
-        if REDIS_URL:
-            redis_client = aioredis.from_url(REDIS_URL)
-            await redis_client.delete(f"cache:sector:{target_sector}:top5")
-            await redis_client.close()
+        # Evict the stale cached top-5 for this sector
+        cache.delete(f"cache:sector:{target_sector}:top5")
 
         return {
             "status": "success",

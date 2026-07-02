@@ -2,18 +2,17 @@ import os
 import io
 import requests
 import asyncpg
-import redis.asyncio as aioredis
 import torch
 import torchaudio
 from fastapi import APIRouter, HTTPException, Depends, Request, Form, UploadFile, File
 from typing import Optional
 from app.models.mert_loader import load_audio_pipeline
 from app.middleware.auth import verify_user_jwt
+from app.lib import cache
 
 router = APIRouter(prefix="/audio", tags=["Audio Evaluation"])
 
 DATABASE_URL = os.getenv("DATABASE_URL")
-REDIS_URL = os.getenv("REDIS_URL")
 
 audio_processor, audio_model = load_audio_pipeline()
 
@@ -81,10 +80,7 @@ async def evaluate_and_save_audio(
         )
         await pg_conn.close()
 
-        if REDIS_URL:
-            redis_client = aioredis.from_url(REDIS_URL)
-            await redis_client.delete(f"cache:sector:{target_sector}:top5")
-            await redis_client.close()
+        cache.delete(f"cache:sector:{target_sector}:top5")
 
         return {
             "status": "success",
