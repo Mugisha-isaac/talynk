@@ -219,6 +219,17 @@ Use Nginx or Caddy to terminate HTTPS and proxy:
 
 A GitHub Actions workflow can be configured to build and push Docker images on each push to `main`, then SSH into the server to pull and restart containers. A sample workflow file is located at `.github/workflows/deploy.yml`.
 
+
+### UI Demo
+<img width="1357" height="633" alt="image" src="https://github.com/user-attachments/assets/21e5fa02-6a20-458a-a1f6-3bdc6d6164a7" />
+
+<img width="1358" height="671" alt="image" src="https://github.com/user-attachments/assets/36303dee-8a31-4ea6-af11-98d24541f051" />
+<img width="1355" height="679" alt="image" src="https://github.com/user-attachments/assets/6445543b-8b4b-445d-a71c-db44f0e8d298" />
+<img width="1343" height="665" alt="image" src="https://github.com/user-attachments/assets/cf39f68c-3bb5-4a3a-8598-2077dcad1b68" />
+<img width="1352" height="687" alt="image" src="https://github.com/user-attachments/assets/0d1a1780-d0c2-4e93-b986-eb84c25e0031" />
+<img width="1353" height="671" alt="image" src="https://github.com/user-attachments/assets/58c1b465-2ef2-4395-bb51-5dd13133f582" />
+<img width="1353" height="679" alt="image" src="https://github.com/user-attachments/assets/12b686af-c216-442a-8729-5a49257f8b20" />
+
 ---
 
 ## Further Documentation
