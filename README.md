@@ -4,8 +4,17 @@ Talynk is a full-stack platform that connects East African creative professional
 
 GitHub Repository: https://github.com/Mugisha-isaac/talynk
 
-
 Demo Video Url: https://www.bugufi.link/SfcDo_
+
+---
+
+## Live Deployments
+
+| Component | URL |
+|---|---|
+| Frontend (Next.js app) | https://talynk-woad.vercel.app/ |
+| ML service (FastAPI, Swagger docs) | https://talynk.onrender.com/docs |
+| Model service (Hugging Face Space — MERT/CLIP/NIMA inference) | https://huggingface.co/spaces/isaacm26/talynk-ml-engine |
 
 ---
 
@@ -13,7 +22,13 @@ Demo Video Url: https://www.bugufi.link/SfcDo_
 
 The creative economy in East Africa faces a structural visibility gap. talented creators lack the infrastructure to reach sponsors and opportunity at scale. Talynk addresses this by providing a platform where creators upload portfolio media, an ML pipeline scores and classifies the content by sector, and a fairness-constrained recommendation engine surfaces those creators to sponsors in an equitable way.
 
-The system is built across three layers: a Next.js 14 fullstack frontend, a FastAPI machine-learning inference microservice, and a shared data layer built on Supabase PostgreSQL, Supabase Storage, and Redis.
+The system is built across three layers:
+
+- **`frontend/`** — a Next.js 14 fullstack application (TypeScript). All backend logic for this layer lives in Next.js API routes — there is no separate Node backend. It talks to PostgreSQL directly via Prisma, uses Cloudinary for media storage, and calls the ML service over HTTP for media scoring and recommendations.
+- **`ml-service/`** — a FastAPI microservice (Python 3.11) that handles auth, media-quality evaluation requests, and sector-based recommendations. It does not run any PyTorch models itself — it stores results in its own PostgreSQL database and delegates inference over HTTP to a separate Hugging Face Space.
+- **`ml-space/`** — the Hugging Face Space (Docker) that actually runs the models: MERT-v1-95M (audio quality) and CLIP ViT-B/32 + NIMA (image/video quality).
+
+Each layer has its own database/storage — there is no shared Supabase or Redis instance between them. See each subproject's README for full detail: `frontend/README.md`, `ml-service/README.md`.
 
 ---
 
@@ -21,10 +36,10 @@ The system is built across three layers: a Next.js 14 fullstack frontend, a Fast
 
 ```
 talynk/
-  frontend/          Next.js 14 fullstack application (TypeScript)
-  ml-service/        FastAPI inference microservice (Python 3.11)
-  docker-compose.yml Orchestrates all services
-  init.sql           Shared database initialisation
+  frontend/          Next.js 14 fullstack application (TypeScript) — talks to Postgres via Prisma
+  ml-service/        FastAPI inference-orchestration microservice (Python 3.11) — its own Postgres
+  ml-space/          Hugging Face Space — runs the MERT/CLIP/NIMA models
+  docker-compose.yml Orchestrates frontend + ml-service for local development
   README.md          This file
 ```
 
@@ -34,11 +49,12 @@ talynk/
 
 ### Prerequisites
 
-- Docker Desktop (Engine 24+)
+- Docker Desktop (Engine 24+), for the Docker Compose path
 - Node.js 18 or later
-- Yarn 4.0.0
+- Yarn
 - Python 3.11 or later
-- A Supabase project (PostgreSQL + Auth + Storage)
+- A PostgreSQL instance for the frontend (`DATABASE_URL`), and a separate one for the ML service — they do **not** share a database or schema
+- A Cloudinary account (media storage for the frontend)
 
 ### 1. Clone the repository
 
@@ -49,49 +65,45 @@ cd talynk
 
 ### 2. Configure environment variables
 
-**Frontend** — create `frontend/.env.local`:
+**Frontend** — copy `frontend/.env.example` to `frontend/.env.local` and fill in at least:
 
+```dotenv
+DATABASE_URL=postgresql://user:password@localhost:5432/talynk
+JWT_SECRET_KEY=your-shared-secret        # must match ml-service's JWT_SECRET_KEY
+CLOUDINARY_CLOUD_NAME=your_cloud_name
+CLOUDINARY_API_KEY=your_cloudinary_api_key
+CLOUDINARY_API_SECRET=your_cloudinary_api_secret
+ML_SERVICE_URL=http://localhost:8000
+ML_SERVICE_ADMIN_USERNAME=admin           # must match ml-service's ML_DEFAULT_ADMIN_USERNAME
+ML_SERVICE_ADMIN_PASSWORD=admin           # must match ml-service's ML_DEFAULT_ADMIN_PASSWORD
 ```
-DATABASE_URL=postgresql://...
-NEXT_PUBLIC_SUPABASE_URL=https://your-project.supabase.co
-NEXT_PUBLIC_SUPABASE_ANON_KEY=your_anon_key
-SUPABASE_SERVICE_ROLE_KEY=your_service_role_key
-NEXTAUTH_SECRET=your_nextauth_secret
-NEXTAUTH_URL=http://localhost:3000
-HUGGINGFACE_API_KEY=optional
-```
+
+See `frontend/README.md` for the full variable reference (auth, ML integration, and a few legacy/unused variables that are safe to leave unset).
 
 **ML service** — create `ml-service/.env`:
 
-```
-JWT_SECRET_KEY=your-shared-nextauth-jwt-secret
+```dotenv
+JWT_SECRET_KEY=your-shared-secret         # must match the frontend's JWT_SECRET_KEY exactly
 DATABASE_URL=postgresql://talynk_admin:password@127.0.0.1:5433/talynk_ml_metadata
+HF_SPACE_URL=https://<your-hf-username>-talynk-ml-engine.hf.space
+ML_DEFAULT_ADMIN_USERNAME=admin
+ML_DEFAULT_ADMIN_PASSWORD=admin
+ML_DEFAULT_ADMIN_SECTOR=music
 ```
 
-`JWT_SECRET_KEY` must match `NEXTAUTH_SECRET` exactly.
+`JWT_SECRET_KEY` must match the frontend's exactly, since the ML service verifies JWTs signed by the frontend using the same secret and algorithm.
 
-### 3. Supabase storage buckets
+### 3. Model service (Hugging Face Space)
 
-Create the following public buckets in your Supabase project:
+The actual PyTorch models (MERT for audio, CLIP+NIMA for image/video) run in the separate `ml-space/` Hugging Face Space, not in `ml-service/`. For local development you can point `HF_SPACE_URL` at the deployed Space (https://huggingface.co/spaces/isaacm26/talynk-ml-engine) instead of running it yourself — see `ml-service/README.md` for details on the split.
 
-- `portfolio` — talent portfolio assets
-- `avatars` — user profile images
-- `logos` — sponsor company logos
-
-### 4. Place ML model checkpoints
-
-Copy the following files into `ml-service/models/`:
-
-- `nima_clip_head.pt`
-- `mert_quality_head.pt`
-
-### 5. Run the full stack
+### 4. Run the full stack
 
 ```bash
 docker compose up --build
 ```
 
-Or run services individually:
+This brings up `frontend` and `ml-service` (plus Postgres). Or run services individually:
 
 ```bash
 # Frontend
@@ -107,16 +119,18 @@ cd ml-service
 python -m venv venv
 source venv/bin/activate
 pip install -r requirements.txt
-uvicorn main:app --host 0.0.0.0 --port 8000 --reload
+uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
 ```
 
-### Service URLs
+### Local Service URLs
 
 | Service     | URL                       |
 |-------------|---------------------------|
 | Frontend    | http://localhost:3000      |
 | ML service  | http://localhost:8000      |
 | ML API docs | http://localhost:8000/docs |
+
+For the hosted equivalents, see [Live Deployments](#live-deployments) above.
 
 ---
 
@@ -127,30 +141,37 @@ uvicorn main:app --host 0.0.0.0 --port 8000 --reload
 
 ### Architecture Diagram
 
-The system follows a three-tier architecture:
+The system is split into three deployable pieces, each with its own data store:
 
 ```
-[ Next.js Frontend ]
+[ Next.js Frontend ]                      (Vercel)
   - Creator Dashboard
   - Sponsor Discovery Interface
   - Upload Page
-  - Analytics Dashboard
-  - Transparency Panel
-        |
-        | HTTP
-        v
-[ FastAPI ML Service ]
-  - MERT-v1-95M    (music quality scoring)
-  - NIMA + CLIP    (visual quality scoring)
-  - LightGCN       (collaborative filtering recommendations)
-  - Fairlearn      (fairness post-processing / demographic parity)
-        |
-        v
-[ Data Layer ]
-  - Supabase PostgreSQL  (users, content, interactions, recommendations)
-  - Supabase Storage     (audio, video, images)
-  - Redis Cache          (quality scores, recommendation outputs, short TTL)
+  - Talent / Sponsor directories
+  - All backend logic as Next.js API routes
+        |                    |
+        | Prisma             | HTTP + JWT
+        v                    v
+[ PostgreSQL ]        [ FastAPI ML Service ]         (Render)
+  - users               - auth (JWT issuance)
+  - creators            - evaluate audio/image/video
+  - content items        (persists results, no models here)
+  - interactions        - sector-top-five recommendations
+  - recommendations      - Fairlearn ThresholdOptimizer post-processing
+        ^                    |          ^
+        |                    | HTTP     |
+[ Cloudinary ]                v          |
+  (audio/video/image    [ Model Service ]   (Hugging Face Space)
+   storage for the         - MERT-v1-95M (audio quality)
+   frontend)                - CLIP ViT-B/32 + NIMA (image/video quality)
+                                    |
+                             [ PostgreSQL ]
+                          (ml-service's own DB —
+                           evaluations, ml-service users)
 ```
+
+The frontend and ML service each own a separate PostgreSQL database — there is no shared database, and no Redis in the current deployment. Caching in the ML service is an in-process, in-memory TTL cache instead.
 
 ###  Designs and App Screenshots
  
@@ -160,63 +181,41 @@ The system follows a three-tier architecture:
 
 ## Deployment Plan
 
+The three components are deployed independently, each to the platform best suited to it, rather than as a single Docker Compose stack. `docker-compose.yml` is kept for local development only.
+
 ### Target Environment
 
-The application is designed to be deployed as three Docker containers managed by Docker Compose, suitable for a single VPS or a container orchestration platform such as Railway, Render, or a self-hosted Ubuntu server.
+| Component | Platform | Notes |
+|---|---|---|
+| `frontend/` | [Vercel](https://vercel.com) | Next.js 14, connected to its own managed PostgreSQL |
+| `ml-service/` | [Render](https://render.com) | Docker web service + managed Postgres, defined in `ml-service/render.yaml` |
+| `ml-space/` | [Hugging Face Spaces](https://huggingface.co/spaces) (Docker SDK) | Runs MERT/CLIP/NIMA inference; sleeps after inactivity on the free CPU tier |
 
-### Services
+### Live URLs
 
-| Service      | Image / Runtime         | Port |
-|--------------|-------------------------|------|
-| frontend     | Node.js 18 / Next.js    | 3000 |
-| ml-service   | Python 3.11 / Uvicorn   | 8000 |
-| postgres     | PostgreSQL 16 Alpine    | 5433 |
-| redis        | Redis 7 Alpine          | 6379 |
+See [Live Deployments](#live-deployments) at the top of this file.
 
 ### Steps
 
-**1. Provision a server**
+**1. Deploy the model service (`ml-space/`)**
 
-A Ubuntu 22.04 VPS with a minimum of 4 GB RAM and 2 vCPUs is recommended given the ML model inference requirements.
+Push `ml-space/` to a Hugging Face Space (Docker SDK). Note its callable subdomain — `https://<username>-<space-name>.hf.space` — this is what `ml-service` calls, not the `huggingface.co/spaces/...` page itself.
 
-**2. Install Docker and Docker Compose**
+**2. Deploy the ML service (`ml-service/`)**
 
-```bash
-sudo apt update && sudo apt install -y docker.io docker-compose-plugin
-```
+On Render: **New → Blueprint**, point at this repo (`ml-service/render.yaml`), which provisions a `starter`-plan Postgres instance and a `starter`-plan Docker web service. Set the `sync: false` environment variables manually in the dashboard: `JWT_SECRET_KEY`, `ML_DEFAULT_ADMIN_USERNAME`/`_PASSWORD`, and `HF_SPACE_URL` (pointed at the Space from step 1).
 
-**3. Clone the repository and configure environment files**
+**3. Deploy the frontend (`frontend/`)**
 
-```bash
-git clone https://github.com/Mugisha-isaac/talynk
-cd talynk
-# Create frontend/.env.local and ml-service/.env as documented above
-```
+On Vercel, import the repo with `frontend/` as the project root, provision/connect a PostgreSQL database, and set the environment variables from [Environment Setup](#environment-setup) above — in particular `JWT_SECRET_KEY` (must match the ML service's value from step 2) and `ML_SERVICE_URL` (the Render URL from step 2). Run `yarn prisma:migrate` (and `yarn prisma:seed` if desired) against the production database as part of the build or a one-off job.
 
-**4. Copy model checkpoints to ml-service/models/**
+**4. Verify end-to-end**
 
-**5. Build and start all containers**
+Confirm the frontend can reach the ML service (`ML_SERVICE_URL`), the ML service can reach the model service (`HF_SPACE_URL`), and that a test upload produces a real `visibility_score` rather than falling back to the frontend's local heuristic.
 
-```bash
-docker compose -f docker-compose.yml up -d --build
-```
+### Local Development
 
-**6. Run database migrations**
-
-```bash
-docker compose exec frontend yarn prisma:migrate
-docker compose exec frontend yarn prisma:seed
-```
-
-**7. Configure a reverse proxy (optional)**
-
-Use Nginx or Caddy to terminate HTTPS and proxy:
-- `yourdomain.com` → port 3000 (frontend)
-- `api.yourdomain.com` → port 8000 (ml-service)
-
-### CI/CD
-
-A GitHub Actions workflow can be configured to build and push Docker images on each push to `main`, then SSH into the server to pull and restart containers. A sample workflow file is located at `.github/workflows/deploy.yml`.
+For local work, `docker compose up --build` still brings up `frontend` + `ml-service` + a local Postgres against your own `.env` files — see [Environment Setup](#environment-setup) above. `ml-space/` is not part of the compose file; point `HF_SPACE_URL` at the deployed Space instead of running the model service locally.
 
 
 ### UI Demo
@@ -233,5 +232,6 @@ A GitHub Actions workflow can be configured to build and push Docker images on e
 
 ## Further Documentation
 
-- `frontend/README.md` — frontend setup, project structure, API routes, and troubleshooting
-- `ml-service/README.md` — ML service setup, model details, fairness design, and API reference
+- `frontend/README.md` — frontend setup, data model, auth, ML integration, API routes, known issues, and troubleshooting
+- `ml-service/README.md` — ML service setup, data model, the model-service split, fairness/recommendations design, deployment, and troubleshooting
+- `ml-space/README.md` — Hugging Face Space configuration reference for the model service
