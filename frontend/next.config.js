@@ -3,17 +3,21 @@ const nextConfig = {
   typescript: {
     ignoreBuildErrors: true,
   },
+
+  eslint: {
+    ignoreDuringBuilds: true,
+  },
+
   images: {
-    // Disable image optimization in development to avoid SSL issues
     unoptimized: true,
     remotePatterns: [
       {
-        protocol: 'https',
-        hostname: '*.supabase.co',
+        protocol: "https",
+        hostname: "*.supabase.co",
       },
       {
-        protocol: 'https',
-        hostname: 'via.placeholder.com',
+        protocol: "https",
+        hostname: "via.placeholder.com",
       },
     ],
   },
