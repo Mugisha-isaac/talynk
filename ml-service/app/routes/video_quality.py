@@ -1,21 +1,15 @@
 import os
-import io
 import requests
 import asyncpg
-import torch
-import torchvision.io as tv_io
-from PIL import Image
 from fastapi import APIRouter, HTTPException, Depends, Request, Form, UploadFile, File
 from typing import Optional
-from app.models.nima_clip_loader import load_visual_pipeline
+from app.services.hf_client import HFClient
 from app.middleware.auth import verify_user_jwt
 from app.lib import cache
 
 router = APIRouter(prefix="/video", tags=["Video Evaluation"])
 
 DATABASE_URL = os.getenv("DATABASE_URL")
-
-visual_processor, visual_model = load_visual_pipeline()
 
 
 @router.post("/evaluate")
@@ -39,8 +33,7 @@ async def evaluate_and_save_video(
         file_url = None
 
     if file and file.filename != "":
-        raw_data = await file.read()
-        file_bytes = io.BytesIO(raw_data)
+        file_bytes = await file.read()
     elif file_url:
         res = requests.get(file_url, timeout=10)
         if res.status_code != 200:
@@ -48,7 +41,7 @@ async def evaluate_and_save_video(
                 status_code=400,
                 detail="Could not read video file stream from provided URL.",
             )
-        file_bytes = io.BytesIO(res.content)
+        file_bytes = res.content
     else:
         raise HTTPException(
             status_code=400,
@@ -56,28 +49,11 @@ async def evaluate_and_save_video(
         )
 
     try:
-        temp_path = "temp_inference_video.mp4"
-        with open(temp_path, "wb") as f:
-            f.write(file_bytes.getbuffer())
+        result = HFClient.video(file_bytes)
+        if "score" not in result:
+            raise ValueError(result.get("detail", "Model service returned no score."))
 
-        video_frames, _, _ = tv_io.read_video(
-            temp_path, pts_unit="sec", output_format="TCHW"
-        )
-        if len(video_frames) == 0:
-            raise ValueError("Target media contains no readable video frames.")
-
-        indices = torch.linspace(0, len(video_frames) - 1, steps=5).long()
-        sampled_frames = video_frames[indices]
-
-        scores = []
-        for frame in sampled_frames:
-            pil_img = Image.fromarray(frame.permute(1, 2, 0).numpy())
-            inputs = visual_processor(images=pil_img, return_tensors="pt")
-            with torch.no_grad():
-                score_tensor = visual_model(inputs.pixel_values)
-            scores.append(score_tensor.item() * 100)
-
-        visibility_score = round(sum(scores) / len(scores), 2)
+        visibility_score = round(result["score"] * 100, 2)
 
         pg_conn = await asyncpg.connect(DATABASE_URL)
         await pg_conn.execute(

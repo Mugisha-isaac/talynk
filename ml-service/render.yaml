@@ -9,7 +9,7 @@ services:
     runtime: docker
     dockerfilePath: ./Dockerfile
     dockerContext: .
-    plan: standard # torch + transformers need real RAM — starter/free tiers will likely OOM
+    plan: starter # inference now happens on the HF Space, not here — no torch/transformers locally
     region: oregon
     healthCheckPath: /health
     envVars:
@@ -25,5 +25,5 @@ services:
         sync: false
       - key: ML_DEFAULT_ADMIN_SECTOR
         value: music
-      - key: HF_TOKEN
-        sync: false # optional, avoids HF Hub rate limiting on model downloads
+      - key: HF_SPACE_URL
+        sync: false # e.g. https://isaacm26-talynk-ml-engine.hf.space (no trailing slash)

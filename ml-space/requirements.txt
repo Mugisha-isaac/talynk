@@ -1,6 +1,7 @@
 fastapi
 uvicorn
-torch
+python-multipart
 transformers
 Pillow
 numpy
+av

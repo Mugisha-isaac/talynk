@@ -1,8 +1,16 @@
 fastapi
 uvicorn
+pydantic
 requests
 python-multipart
 PyJWT
 passlib
 bcrypt
 python-dotenv
+asyncpg
+joblib
+pandas
+numpy
+fairlearn
+scikit-learn
+email-validator

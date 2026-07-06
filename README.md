@@ -66,7 +66,6 @@ HUGGINGFACE_API_KEY=optional
 ```
 JWT_SECRET_KEY=your-shared-nextauth-jwt-secret
 DATABASE_URL=postgresql://talynk_admin:password@127.0.0.1:5433/talynk_ml_metadata
-REDIS_URL=redis://127.0.0.1:6379/0
 ```
 
 `JWT_SECRET_KEY` must match `NEXTAUTH_SECRET` exactly.
