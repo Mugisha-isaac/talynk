@@ -16,6 +16,7 @@ from app.routes import (
     image_quality,
     video_quality,
     recommendations,
+    fairness,
     health,
 )
 
@@ -113,6 +114,7 @@ app.include_router(audio_quality.router, prefix="/api/v1")
 app.include_router(image_quality.router, prefix="/api/v1")
 app.include_router(video_quality.router, prefix="/api/v1")
 app.include_router(recommendations.router, prefix="/api/v1")
+app.include_router(fairness.router, prefix="/api/v1")
 
 
 def custom_openapi():

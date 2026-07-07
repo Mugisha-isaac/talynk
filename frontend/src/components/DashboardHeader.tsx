@@ -16,7 +16,7 @@ export function DashboardHeader({ userRole = 'TALENT', userName = 'User' }: Dash
 
   return (
     <header className="sticky top-0 z-40 bg-slate-900 border-b border-slate-800 backdrop-blur-sm bg-slate-900/95">
-      <div className="flex items-center justify-between px-4 md:px-6 py-3">
+      <div className="flex items-center justify-between pl-16 pr-4 md:px-6 py-3">
         {/* Search Bar */}
         <div className="flex-1 max-w-md">
           <div className="relative">

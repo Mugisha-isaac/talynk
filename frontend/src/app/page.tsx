@@ -15,12 +15,11 @@ export default function HomePage() {
       
       {/* Hero Section */}
       <section 
-        className="relative overflow-hidden bg-gradient-to-b from-slate-950 to-slate-900 py-24 sm:py-32 lg:py-40 border-b border-slate-800/50"
+        className="relative overflow-hidden bg-gradient-to-b from-slate-950 to-slate-900 py-24 sm:py-32 lg:py-40 border-b border-slate-800/50 bg-scroll sm:bg-fixed"
         style={{
           backgroundImage: `url(${heroImageUrl})`,
           backgroundSize: 'cover',
           backgroundPosition: 'center',
-          backgroundAttachment: 'fixed',
         }}
       >
         {/* Overlay */}

@@ -4,7 +4,7 @@ Talynk is a full-stack platform that connects East African creative professional
 
 GitHub Repository: https://github.com/Mugisha-isaac/talynk
 
-Demo Video Url: https://www.bugufi.link/SfcDo_
+Demo Video Url: [https://www.bugufi.link/SfcDo_](https://www.bugufi.link/SfcDo_)
 
 ---
 

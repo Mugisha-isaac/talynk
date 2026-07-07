@@ -1,0 +1,28 @@
+# Database
+DATABASE_URL="postgresql://user:password@localhost:5432/Talynk"
+
+# Supabase
+NEXT_PUBLIC_SUPABASE_URL=https://your-project.supabase.co
+NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
+SUPABASE_SERVICE_ROLE_KEY=your_service_role_key
+
+# Classification Model API (choose one or implement your own)
+# Option 1: Using Hugging Face API
+HUGGINGFACE_API_KEY=your_huggingface_key
+
+# Option 2: Using Google Vision API
+GOOGLE_VISION_API_KEY=your_google_vision_key
+
+# App
+NEXT_PUBLIC_APP_URL=http://localhost:3000
+
+# ML Service (FastAPI inference layer)
+ML_SERVICE_URL=http://localhost:8000
+JWT_SECRET_KEY=your-shared-nextauth-jwt-token-secret-key-12345
+NEXTAUTH_SECRET=your_nextauth_secret
+NEXTAUTH_URL=http://localhost:3000
+
+# Cloudinary (media uploads)
+CLOUDINARY_CLOUD_NAME=your_cloud_name
+CLOUDINARY_API_KEY=your_cloudinary_api_key
+CLOUDINARY_API_SECRET=your_cloudinary_api_secret
