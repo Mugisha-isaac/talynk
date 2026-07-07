@@ -209,6 +209,19 @@ docker build -t talynk-ml-service .
 docker run --env-file .env -p 8000:8000 talynk-ml-service
 ```
 
+## Running Tests
+
+Tests use pytest + FastAPI's `TestClient`. `asyncpg.connect` and `HFClient`
+are patched per-test with fakes (see `tests/conftest.py`), so no real
+Postgres or Hugging Face Space connection is required.
+
+```bash
+pip install -r requirements-dev.txt
+pytest
+```
+
+See [`../TESTING.md`](../TESTING.md) for what's currently covered.
+
 ## Database Initialization
 
 The service applies `init.sql` programmatically via asyncpg on startup — no

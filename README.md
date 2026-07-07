@@ -132,6 +132,24 @@ uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
 
 For the hosted equivalents, see [Live Deployments](#live-deployments) above.
 
+### Running Tests
+
+```bash
+# Frontend (Jest + React Testing Library)
+cd frontend
+npm test
+
+# ML service (pytest)
+cd ml-service
+source venv/bin/activate   # if not already active
+pip install -r requirements-dev.txt
+pytest
+```
+
+Neither suite touches a real database, Postgres, or the Hugging Face model
+service — everything is mocked. See [`TESTING.md`](./TESTING.md) for what's
+covered and how to extend it.
+
 ---
 
 ## Designs
@@ -235,3 +253,4 @@ For local work, `docker compose up --build` still brings up `frontend` + `ml-ser
 - `frontend/README.md` — frontend setup, data model, auth, ML integration, API routes, known issues, and troubleshooting
 - `ml-service/README.md` — ML service setup, data model, the model-service split, fairness/recommendations design, deployment, and troubleshooting
 - `ml-space/README.md` — Hugging Face Space configuration reference for the model service
+- `TESTING.md` — how to run and extend the frontend and ML service test suites

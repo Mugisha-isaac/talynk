@@ -268,6 +268,23 @@ succeed via the local-heuristic fallback.
 | `yarn prisma:migrate` | Apply pending migrations |
 | `yarn prisma:studio` | Open Prisma Studio |
 | `yarn prisma:seed` | Seed initial sector/discipline data |
+| `yarn test` | Run the Jest test suite once |
+| `yarn test:watch` | Run tests in watch mode |
+| `yarn test:coverage` | Run tests with a coverage report |
+
+## Running Tests
+
+Tests use Jest + React Testing Library, configured via `next/jest` so they
+run against the same TypeScript/path-alias setup (`@/*`) as the app itself.
+
+```bash
+yarn test
+```
+
+No dev server, database, or ML service needs to be running — `fetch` and
+`XMLHttpRequest` calls are mocked per-test. Test files live alongside their
+subject in `__tests__/` folders (e.g. `src/hooks/__tests__/useMedia.test.ts`).
+See [`../TESTING.md`](../TESTING.md) for what's currently covered.
 
 ## Known Issues / Legacy Code
 
