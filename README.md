@@ -20,7 +20,7 @@ Demo Video Url: [https://www.bugufi.link/SfcDo_](https://www.bugufi.link/SfcDo_)
 
 ## Description
 
-The creative economy in East Africa faces a structural visibility gap. talented creators lack the infrastructure to reach sponsors and opportunity at scale. Talynk addresses this by providing a platform where creators upload portfolio media, an ML pipeline scores and classifies the content by sector, and a fairness-constrained recommendation engine surfaces those creators to sponsors in an equitable way.
+The creative economy in East Africa faces a structural visibility gap. Talented creators lack the infrastructure to reach sponsors and opportunity at scale. Talynk addresses this by providing a platform where creators upload portfolio media, an ML pipeline scores and classifies the content by sector, and a fairness-constrained recommendation engine surfaces those creators to sponsors in an equitable way.
 
 The system is built across three layers:
 
@@ -176,7 +176,9 @@ The system is split into three deployable pieces, each with its own data store:
   - creators            - evaluate audio/image/video
   - content items        (persists results, no models here)
   - interactions        - sector-top-five recommendations
-  - recommendations      - Fairlearn ThresholdOptimizer post-processing
+  - recommendations      - Fairlearn ThresholdOptimizer fairness
+                            (embedded in recommendations, plus a
+                            standalone /fairness/rerank endpoint)
         ^                    |          ^
         |                    | HTTP     |
 [ Cloudinary ]                v          |

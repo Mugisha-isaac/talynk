@@ -40,7 +40,9 @@ enough to run on a small Render instance.
 | POST | `/api/v1/audio/evaluate` | Bearer JWT | Score an audio file, record the result |
 | POST | `/api/v1/image/evaluate` | Bearer JWT | Score an image file, record the result |
 | POST | `/api/v1/video/evaluate` | Bearer JWT | Score a video (by upload or `file_url`), record the result |
-| POST | `/api/v1/recommendations/sector-top-five` | Bearer JWT | Top 5 highest-scoring evaluations for a sector |
+| POST | `/api/v1/recommendations/sector-top-five` | Bearer JWT | Top 5 highest-scoring evaluations for a sector, each annotated with a fairness-adjusted `visibility_approved` flag |
+| POST | `/api/v1/fairness/rerank` | Bearer JWT | Re-run demographic-parity fairness re-ranking on an arbitrary set of recommendations |
+| GET | `/api/v1/fairness/status` | — | Reports whether the Fairlearn optimizer weights loaded successfully |
 | GET | `/docs` | — | Swagger UI |
 
 All three `*/evaluate` routes take the same shape as multipart form data:
@@ -55,11 +57,11 @@ Each evaluate route calls out to the [Model Service](#model-service), converts
 the returned `0–1` score to a `0–100` `visibility_score`, writes a row to
 `platform_media_evaluations`, and invalidates that sector's cached top-5 list.
 
-> **Note:** `app/routes/fairness.py` exists in the codebase as a scaffold for
-> a Fairlearn re-ranking endpoint but is not currently registered in
-> `app/main.py`, so `/fairness` is not live. The only fairness logic that
-> actually runs today is the `ThresholdOptimizer` post-processing step inside
-> `sector-top-five` (see [Recommendations & Fairness](#recommendations--fairness)).
+> **Note:** Fairness re-ranking is live in two places — embedded directly in
+> `sector-top-five`, and as a standalone `/api/v1/fairness/rerank` endpoint
+> for re-ranking an arbitrary recommendation list. See
+> [Recommendations & Fairness](#recommendations--fairness) for how each one
+> works and the caveats that apply to both.
 
 ## Data Model
 
@@ -113,11 +115,36 @@ the Hugging Face Hub on cold start).
 `platform_media_evaluations` for the given sector, media-type-agnostic —
 audio, image, and video evaluations are all eligible.
 
-Results are optionally passed through a Fairlearn `ThresholdOptimizer`
-(unpickled from `app/models/weights/fairlearn_threshold_optimizer.pkl`) to
-attach a `visibility_approved` boolean per candidate. If the pickle can't be
-loaded for any reason, the route degrades gracefully — every candidate is
-simply marked approved rather than the request failing.
+Results are passed through a Fairlearn `ThresholdOptimizer` (unpickled once
+at import time from `app/models/weights/fairlearn_threshold_optimizer.pkl`)
+to attach a `visibility_approved` boolean per candidate. If the pickle can't
+be loaded for any reason, the route degrades gracefully — every candidate is
+simply marked approved rather than the request failing. This is the path the
+frontend actually consumes (`getSectorRecommendations()` in
+`frontend/src/lib/ml-service.ts`); the UI reads `visibility_approved` off
+each recommendation directly.
+
+`POST /api/v1/fairness/rerank` runs the same `ThresholdOptimizer` against a
+caller-supplied list of recommendations instead of a database query, and
+returns each item annotated with `fairness_approved`, `demographic_group`,
+and an estimated gap-reduction figure. It is registered and tested
+independently of `sector-top-five`, but nothing in the frontend calls it yet
+— it exists as a standalone fairness API for future use (e.g. re-ranking a
+recommendation set assembled from another source). `GET /api/v1/fairness/status`
+reports whether the optimizer weights loaded successfully, which is useful
+for confirming a deployment has the `.pkl` file in place.
+
+**Sensitive-feature caveat (both mechanisms):** neither route has access to
+real creator demographic data. `sector-top-five` and `/fairness/rerank`
+(when `sensitive_features` isn't supplied in the request body) both generate
+a random 0/1 demographic label per candidate with `np.random.choice` purely
+to satisfy the `ThresholdOptimizer.predict()` call signature. The
+`visibility_approved`/`fairness_approved` flags and gap-reduction estimate
+this produces are consequently not a real fairness measurement against any
+actual protected attribute — they demonstrate the mechanism, not a
+production-grade equity guarantee. Wiring in real, consented demographic
+data (per `frontend`'s privacy/terms copy, which already describes this
+intent) is necessary before the gap-reduction numbers mean anything.
 
 ## Caching Strategy
 
@@ -147,7 +174,7 @@ ml-service/
       image_quality.py     /api/v1/image/evaluate
       video_quality.py     /api/v1/video/evaluate
       recommendations.py   /api/v1/recommendations/sector-top-five
-      fairness.py          Not currently wired into main.py (see note above)
+      fairness.py          /api/v1/fairness/rerank, /api/v1/fairness/status
       health.py            /health
     models/
       weights/
@@ -245,8 +272,17 @@ Face Space — see that directory's own README.
 
 ## Known Issues / TODO
 
-- **`app/routes/fairness.py`** is a scaffold, not registered in `app/main.py`.
-  Either wire it in as a real endpoint or remove it to avoid confusion.
+- **`tests/test_fairness.py` posts to the wrong path.** It calls
+  `POST /api/v1/fairness` instead of `POST /api/v1/fairness/rerank`, so it
+  currently fails with a 404 even though the endpoint itself works correctly
+  when called at the right path (verified manually and exercised indirectly
+  via `sector-top-five`'s tests). Fix the URL in the test rather than the
+  route.
+- **Sensitive features are mocked, not real**, in both `sector-top-five` and
+  `/fairness/rerank` when no `sensitive_features` are supplied — see the
+  caveat in [Recommendations & Fairness](#recommendations--fairness). This
+  needs real, consented demographic data before the fairness metrics are
+  meaningful.
 - **`app/scripts/train_mert.py`** imports `app.models.mert_loader`, which no
   longer exists in this service — the MERT model code now lives in
   `ml-space/`. This script needs to be moved there (or updated to import

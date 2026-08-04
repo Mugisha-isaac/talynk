@@ -121,7 +121,14 @@ talk to the ML service:
   passing the file plus the **creator's** ID as `talent_id` so the score
   gets attributed correctly rather than to the shared service account.
 - `getSectorRecommendations()` calls
-  `POST {ML_SERVICE_URL}/api/v1/recommendations/sector-top-five`.
+  `POST {ML_SERVICE_URL}/api/v1/recommendations/sector-top-five`. Each
+  returned item carries a `visibility_approved` boolean (the ML service's
+  Fairlearn `ThresholdOptimizer` output); `mapMlToRecommendation()` surfaces
+  this as `visibilityApproved` and a "Fairness Approved" label on the
+  dashboard (see `app/(dashboard)/home/page.tsx`). The ML service's own
+  README documents a caveat worth knowing: this flag currently comes from
+  synthetic demographic labels, not real creator data — see
+  `ml-service/README.md`'s Known Issues.
 - `<MlServiceBootstrapper />` (mounted somewhere in the root layout) fires
   `POST /api/ml/auth/bootstrap` on page load purely to warm the cached
   token before a user actually needs it.

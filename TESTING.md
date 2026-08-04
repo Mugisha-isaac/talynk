@@ -58,5 +58,5 @@ What's covered:
 - `/api/v1/auth/register` and `/login` (duplicate email, wrong password, missing identity, valid JWT)
 - `verify_user_jwt` middleware directly (missing, malformed, expired, and invalid tokens)
 - `/api/v1/audio|image|video/evaluate` (authentication required, score persistence, cache invalidation, `talent_id` vs. token `user_id` fallback, model-service error handling, and video's `file` vs. `file_url` paths)
-- `/api/v1/recommendations/sector-top-five` (cache hit vs. miss, empty sector, and fairness re-ranking path)
-- `/api/v1/fairness`
+- `/api/v1/recommendations/sector-top-five` (cache hit vs. miss, empty sector, and the embedded fairness re-ranking path)
+- `/api/v1/fairness/rerank` — currently failing due to a wrong URL in the test itself (`/api/v1/fairness` instead of `/api/v1/fairness/rerank`), not a bug in the route; see `ml-service/README.md`'s Known Issues
